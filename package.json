@@ -1,0 +1,33 @@
+{
+  "name": "harmonychain",
+  "version": "1.0.0",
+  "description": "Decentralized music platform",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "test:coverage": "turbo run test:coverage",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check",
+    "clean": "turbo run clean",
+    "deploy:frontend": "turbo run deploy:frontend",
+    "setup:services": "node scripts/setup-services.js",
+    "start:services": "node scripts/start-services.js",
+    "stop:services": "node scripts/stop-services.js"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "turbo": "^1.10.0",
+    "typescript": "^5.1.6",
+    "@types/node": "^20.5.2"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "tools/*"
+  ],
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+}

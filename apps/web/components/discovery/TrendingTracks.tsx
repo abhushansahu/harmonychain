@@ -48,10 +48,19 @@ export default function TrendingTracks({
         title: t.title,
         artist: t.artist,
         artistAddress: t.artistAddress || '',
+        artistId: `artist-${i}`,
         ipfsHash: t.ipfsHash,
         genre: t.genre || 'Unknown',
         playCount: t.playCount,
         createdAt: t.createdAt,
+        updatedAt: t.createdAt,
+        duration: 180,
+        description: '',
+        tags: [],
+        isPublished: true,
+        isNftMinted: false,
+        totalRevenue: 0,
+        royaltyPercentage: 10,
         rank: t.rank ?? i + 1,
         previousRank: t.previousRank,
         trend: t.trend ?? 'stable',
@@ -168,7 +177,7 @@ export default function TrendingTracks({
         <div className="flex items-center space-x-2">
           <Select
             value={selectedTimeRange}
-            onChange={(e) => setSelectedTimeRange(e.target.value as typeof selectedTimeRange)}
+            onChange={(value) => setSelectedTimeRange(value as typeof selectedTimeRange)}
             className="text-sm"
             options={[
               { value: '24h', label: 'Last 24h' },

@@ -28,6 +28,20 @@ export interface LicenseSettings {
   platforms: string[]
 }
 
+export interface TrackMetadata {
+  title: string
+  artist: string
+  album?: string
+  genre: string
+  year: number
+  duration: number
+  description?: string
+  tags: string[]
+  artwork?: string
+  audioFile: string
+  license: LicenseSettings
+}
+
 const LICENSE_TYPES = [
   {
     id: 'free',

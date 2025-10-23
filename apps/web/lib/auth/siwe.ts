@@ -1,5 +1,7 @@
+'use client'
+
 import { SiweMessage } from 'siwe'
-import { useSigner, useAccount } from 'wagmi'
+import { useWalletClient, useAccount } from 'wagmi'
 import { useState, useEffect } from 'react'
 
 export interface SIWEUser {
@@ -21,7 +23,7 @@ export interface SIWEState {
 const AUTH_STORAGE_KEY = 'harmonychain-siwe-auth'
 
 export const useSIWE = (): SIWEState => {
-  const { data: signer } = useSigner()
+  const { data: walletClient } = useWalletClient()
   const { address } = useAccount()
   const [user, setUser] = useState<SIWEUser | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -52,8 +54,8 @@ export const useSIWE = (): SIWEState => {
   }, [address, user])
 
   const signIn = async (): Promise<void> => {
-    if (!signer || !address) {
-      throw new Error('No signer or address available')
+    if (!walletClient || !address) {
+      throw new Error('No wallet client or address available')
     }
 
     setIsLoading(true)
@@ -75,7 +77,7 @@ export const useSIWE = (): SIWEState => {
       })
 
       const message = siwe.prepareMessage()
-      const signature = await signer.signMessage(message)
+      const signature = await walletClient.signMessage({ message })
 
       // Verify signature
       const result = await siwe.verify({ signature })

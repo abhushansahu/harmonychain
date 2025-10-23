@@ -117,10 +117,9 @@ export default function GenreFilter({
           
           <Button
             variant="ghost"
-            size="icon"
+            size="sm"
             onClick={() => setIsExpanded(!isExpanded)}
             className="p-1 text-gray-500 hover:text-gray-700 transition-colors"
-            title={isExpanded ? 'Collapse' : 'Expand'}
             testId="toggle-expand"
           >
             <svg 
@@ -169,11 +168,12 @@ export default function GenreFilter({
             </div>
             <Input
               type="text"
+              label="Search genres"
+              name="genre-search"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(value) => setSearchQuery(value)}
               placeholder="Search genres..."
               className="pl-9 pr-3 py-2 text-sm"
-              testId="genre-search"
             />
           </div>
         </div>

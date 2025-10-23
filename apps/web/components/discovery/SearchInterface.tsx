@@ -127,20 +127,38 @@ export default function SearchInterface({
         title: `${searchQuery} Track 1`,
         artist: 'Artist Name',
         artistAddress: '0x123...',
+        artistId: 'artist-1',
         ipfsHash: 'QmHash1',
         genre: 'Electronic',
         playCount: 1250,
-        createdAt: Date.now() - 86400000
+        createdAt: Date.now() - 86400000,
+        updatedAt: Date.now() - 86400000,
+        duration: 180,
+        description: 'Search result track 1',
+        tags: ['electronic', 'search'],
+        isPublished: true,
+        isNftMinted: false,
+        totalRevenue: 0,
+        royaltyPercentage: 10
       },
       {
         id: '2',
         title: `${searchQuery} Track 2`,
         artist: 'Another Artist',
         artistAddress: '0x456...',
+        artistId: 'artist-2',
         ipfsHash: 'QmHash2',
         genre: 'Rock',
         playCount: 890,
-        createdAt: Date.now() - 172800000
+        createdAt: Date.now() - 172800000,
+        updatedAt: Date.now() - 172800000,
+        duration: 200,
+        description: 'Search result track 2',
+        tags: ['rock', 'search'],
+        isPublished: true,
+        isNftMinted: false,
+        totalRevenue: 0,
+        royaltyPercentage: 10
       }
     ]
 
@@ -149,8 +167,14 @@ export default function SearchInterface({
         id: '1',
         walletAddress: '0x123...',
         name: `Artist ${searchQuery}`,
+        bio: 'Search result artist',
+        avatar: '',
         totalTracks: 15,
-        isVerified: true
+        totalPlays: 25000,
+        totalRevenue: 500,
+        isVerified: true,
+        socialLinks: [],
+        createdAt: Date.now() - 86400000
       }
     ]
 
@@ -217,16 +241,13 @@ export default function SearchInterface({
         </div>
         
         <Input
-          ref={searchRef}
           type="text"
+          label="Search"
+          name="search"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onFocus={() => setShowSuggestions(true)}
+          onChange={(value) => setQuery(value)}
           placeholder={placeholder}
-          autoFocus={autoFocus}
           className="pl-10 pr-10 py-3 text-lg"
-          testId="search-input"
         />
         
         <div className="absolute inset-y-0 right-0 flex items-center pr-3 z-10">
@@ -235,7 +256,7 @@ export default function SearchInterface({
           ) : query ? (
             <Button
               variant="ghost"
-              size="icon"
+              size="sm"
               onClick={clearSearch}
               className="text-gray-400 hover:text-gray-600 transition-colors"
               aria-label="Clear search"

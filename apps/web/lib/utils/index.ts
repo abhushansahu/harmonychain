@@ -6,6 +6,9 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+// Alias for cn function (for backward compatibility)
+export const classNames = cn
+
 // Format currency values
 export function formatCurrency(amount: number, currency: 'ETH' | 'USDC' | 'USDT' = 'ETH'): string {
   const decimals = currency === 'ETH' ? 3 : 2

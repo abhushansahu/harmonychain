@@ -290,11 +290,15 @@ export default function RevenueSplit({
       
       if (newIndex < 0 || newIndex >= splits.length) return prev
       
-      [splits[index], splits[newIndex]] = [splits[newIndex], splits[index]]
+      const temp = splits[index]
+      splits[index] = splits[newIndex]
+      splits[newIndex] = temp
+      
+      const updatedSplits = splits.map((s, i) => ({ ...s, priority: i + 1 }))
       
       return {
         ...prev,
-        splits: splits.map((s, i) => ({ ...s, priority: i + 1 })),
+        splits: updatedSplits,
         updatedAt: Date.now()
       }
     })

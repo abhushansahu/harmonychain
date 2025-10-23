@@ -9,8 +9,9 @@ import ArtistDiscovery from '../../components/discovery/ArtistDiscovery'
 import TrackUpload from '../../components/upload/TrackUpload'
 import MetadataForm from '../../components/upload/MetadataForm'
 import LicenseSettings from '../../components/upload/LicenseSettings'
-import { Track, Artist } from '../../lib/core/types'
-import { TrackMetadata, LicenseSettings as LicenseSettingsType } from '../../components/upload/LicenseSettings'
+import { Track, Artist } from '../../lib/types'
+import { TrackMetadata } from '../../components/upload/MetadataForm'
+import { LicenseSettings as LicenseSettingsType } from '../../components/upload/LicenseSettings'
 
 export default function DemoPage() {
   const [currentTrack, setCurrentTrack] = useState<Track | null>(null)
@@ -26,10 +27,19 @@ export default function DemoPage() {
     title: 'Demo Track',
     artist: 'Demo Artist',
     artistAddress: '0x123...',
+    artistId: 'artist-1',
     ipfsHash: 'QmDemoHash',
     genre: 'Electronic',
     playCount: 1250,
-    createdAt: Date.now() - 86400000
+    createdAt: Date.now() - 86400000,
+    updatedAt: Date.now() - 86400000,
+    duration: 180,
+    description: 'A demo track for testing',
+    tags: ['electronic', 'demo', 'test'],
+    isPublished: true,
+    isNftMinted: false,
+    totalRevenue: 0,
+    royaltyPercentage: 10
   }
 
   const handleTrackSelect = (track: Track) => {
@@ -80,9 +90,18 @@ export default function DemoPage() {
           <div className="space-y-6">
             <h2 className="text-2xl font-semibold text-gray-900">Music Player</h2>
             <MusicPlayer
-              initialTrack={mockTrack}
-              onTrackChange={handleTrackSelect}
-              onPlaybackStateChange={(isPlaying) => console.log('Playing:', isPlaying)}
+              currentTrack={mockTrack}
+              isPlaying={false}
+              progress={0}
+              volume={50}
+              queue={[mockTrack]}
+              onPlayPause={() => console.log('Play/Pause')}
+              onSkipNext={() => console.log('Skip Next')}
+              onSkipPrevious={() => console.log('Skip Previous')}
+              onSeek={(progress) => console.log('Seek:', progress)}
+              onVolumeChange={(volume) => console.log('Volume:', volume)}
+              onQueueChange={(queue) => console.log('Queue:', queue)}
+              onTrackSelect={handleTrackSelect}
             />
           </div>
 

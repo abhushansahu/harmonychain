@@ -3,7 +3,7 @@
  * Uses collaborative filtering, content-based filtering, and ML algorithms
  */
 
-import { Track, Artist } from '../lib/core/types'
+import { Track, Artist } from '../../lib/types'
 
 export interface Recommendation {
   track: Track
@@ -56,20 +56,38 @@ export class RecommendationEngine {
         title: 'Electronic Dreams',
         artist: 'SynthMaster',
         artistAddress: '0x123...',
+        artistId: 'artist-1',
         ipfsHash: 'QmHash1',
         genre: 'Electronic',
         playCount: 5000,
-        createdAt: Date.now() - 86400000
+        createdAt: Date.now() - 86400000,
+        updatedAt: Date.now() - 86400000,
+        duration: 180,
+        description: 'An electronic masterpiece',
+        tags: ['electronic', 'synth', 'ambient'],
+        isPublished: true,
+        isNftMinted: false,
+        totalRevenue: 0,
+        royaltyPercentage: 10
       },
       {
         id: '2',
         title: 'Rock Anthem',
         artist: 'GuitarHero',
         artistAddress: '0x456...',
+        artistId: 'artist-2',
         ipfsHash: 'QmHash2',
         genre: 'Rock',
         playCount: 3000,
-        createdAt: Date.now() - 172800000
+        createdAt: Date.now() - 172800000,
+        updatedAt: Date.now() - 172800000,
+        duration: 240,
+        description: 'A powerful rock anthem',
+        tags: ['rock', 'guitar', 'energy'],
+        isPublished: true,
+        isNftMinted: false,
+        totalRevenue: 0,
+        royaltyPercentage: 10
       }
       // Add more tracks...
     ]
@@ -82,8 +100,14 @@ export class RecommendationEngine {
         id: '1',
         walletAddress: '0x123...',
         name: 'SynthMaster',
+        bio: 'Electronic music producer',
+        avatar: '',
         totalTracks: 25,
-        isVerified: true
+        totalPlays: 50000,
+        totalRevenue: 1000,
+        isVerified: true,
+        socialLinks: [],
+        createdAt: Date.now() - 86400000
       }
       // Add more artists...
     ]

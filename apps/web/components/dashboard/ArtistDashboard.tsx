@@ -200,7 +200,7 @@ export default function ArtistDashboard({
             {/* Time Range Selector */}
             <Select
               value={timeRange}
-              onChange={(e) => setTimeRange(e.target.value as typeof timeRange)}
+              onChange={(value) => setTimeRange(value as typeof timeRange)}
               className="text-sm"
               options={[
                 { value: '7d', label: 'Last 7 days' },

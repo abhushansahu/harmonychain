@@ -1,3 +1,5 @@
+'use client'
+
 import React, { createContext, useContext, useEffect, ReactNode } from 'react'
 import { useSIWE, SIWEUser } from '../../lib/auth/siwe'
 import { useAccount } from 'wagmi'

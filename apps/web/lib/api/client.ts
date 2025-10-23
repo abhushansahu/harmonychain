@@ -1,47 +1,120 @@
-export interface ApiClientOptions {
-  baseUrl?: string
-  headers?: Record<string, string>
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+
+export interface ApiResponse<T = any> {
+  success: boolean
+  data?: T
+  error?: string
+  message?: string
+}
+
+export interface Track {
+  id: string
+  title: string
+  artist: string
+  artistId: string
+  duration: number
+  genre: string
+  price: number
+  coverArt: string
+  audioFile: string
+  ipfsHash: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Artist {
+  id: string
+  name: string
+  walletAddress: string
+  bio: string
+  avatar: string
+  verified: boolean
+  followers: number
+  tracks: number
+  createdAt: string
+}
+
+export interface NFT {
+  id: string
+  tokenId: string
+  owner: string
+  price: number
+  isListed: boolean
+  metadata: string
+  createdAt: string
 }
 
 export class ApiClient {
   private baseUrl: string
-  private defaultHeaders: Record<string, string>
 
-  constructor(options: ApiClientOptions = {}) {
-    this.baseUrl = options.baseUrl || process.env.NEXT_PUBLIC_API_BASE || ''
-    this.defaultHeaders = {
-      'Content-Type': 'application/json',
-      ...(options.headers || {})
+  constructor(baseUrl: string = API_BASE_URL) {
+    this.baseUrl = baseUrl
+  }
+
+  private async request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
+    try {
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+        ...options,
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      return data
+    } catch (error) {
+      console.error('API request failed:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Failed to fetch data from API'
+      }
     }
   }
 
-  async get<T>(path: string, params?: Record<string, string | number | boolean>): Promise<T> {
-    const url = new URL(this.resolve(path))
-    if (params) {
-      Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, String(v)))
-    }
-    const res = await fetch(url.toString(), { headers: this.defaultHeaders, method: 'GET' })
-    if (!res.ok) throw new Error(`GET ${url} failed: ${res.status}`)
-    return res.json() as Promise<T>
+  // Track endpoints
+  async getTracks(): Promise<ApiResponse<Track[]>> {
+    return this.request<Track[]>('/api/tracks')
   }
 
-  async post<T>(path: string, body?: unknown): Promise<T> {
-    const url = this.resolve(path)
-    const res = await fetch(url, {
+  async getTrack(id: string): Promise<ApiResponse<Track>> {
+    return this.request<Track>(`/api/tracks/${id}`)
+  }
+
+  async createTrack(track: Omit<Track, 'id' | 'createdAt' | 'updatedAt'>): Promise<ApiResponse<Track>> {
+    return this.request<Track>('/api/tracks', {
       method: 'POST',
-      headers: this.defaultHeaders,
-      body: body ? JSON.stringify(body) : undefined
+      body: JSON.stringify(track),
     })
-    if (!res.ok) throw new Error(`POST ${url} failed: ${res.status}`)
-    return res.json() as Promise<T>
   }
 
-  private resolve(path: string): string {
-    if (!this.baseUrl) return path
-    return `${this.baseUrl.replace(/\/$/, '')}/${path.replace(/^\//, '')}`
+  // Artist endpoints
+  async getArtists(): Promise<ApiResponse<Artist[]>> {
+    return this.request<Artist[]>('/api/artists')
+  }
+
+  async getArtist(id: string): Promise<ApiResponse<Artist>> {
+    return this.request<Artist>(`/api/artists/${id}`)
+  }
+
+  // NFT endpoints
+  async getNFTs(): Promise<ApiResponse<NFT[]>> {
+    return this.request<NFT[]>('/api/nfts')
+  }
+
+  async getNFT(id: string): Promise<ApiResponse<NFT>> {
+    return this.request<NFT>(`/api/nfts/${id}`)
+  }
+
+  // Health check
+  async healthCheck(): Promise<ApiResponse> {
+    return this.request('/api/health')
   }
 }
 
 export const apiClient = new ApiClient()
-
-

@@ -1,14 +1,31 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Inter, Playfair_Display } from 'next/font/google'
 import './globals.css'
-import { AuthProvider } from '../components/auth/AuthProvider'
-import { WagmiProvider } from '../components/providers/WagmiProvider'
+import { Providers } from '@/components/providers/Providers'
 
 const inter = Inter({ subsets: ['latin'] })
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  variable: '--font-playfair',
+  display: 'swap'
+})
 
 export const metadata: Metadata = {
   title: 'HarmonyChain - Decentralized Music Platform',
-  description: 'A decentralized music ecosystem enabling free music access while creating sustainable revenue streams for artists',
+  description: 'Experience free music streaming while supporting artists through Web3 technology on Harmony Network.',
+  keywords: ['music', 'blockchain', 'web3', 'decentralized', 'harmony', 'nft', 'crypto'],
+  authors: [{ name: 'HarmonyChain Team' }],
+  openGraph: {
+    title: 'HarmonyChain - Decentralized Music Platform',
+    description: 'Experience free music streaming while supporting artists through Web3 technology.',
+    type: 'website',
+    locale: 'en_US',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'HarmonyChain - Decentralized Music Platform',
+    description: 'Experience free music streaming while supporting artists through Web3 technology.',
+  },
 }
 
 export default function RootLayout({
@@ -17,13 +34,11 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
-        <WagmiProvider>
-          <AuthProvider>
-            {children}
-          </AuthProvider>
-        </WagmiProvider>
+    <html lang="en" className="scroll-smooth">
+      <body className={`${inter.className} ${playfair.variable} antialiased`}>
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   )

@@ -1,14 +1,6 @@
 {
   "extends": "../../tools/typescript-config/base.json",
   "compilerOptions": {
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
-    "strict": false,
-    "noEmit": true,
-    "jsx": "preserve",
     "plugins": [
       {
         "name": "next"
@@ -16,17 +8,12 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@harmonychain/shared": ["../../packages/shared/src"],
-      "@harmonychain/shared/*": ["../../packages/shared/src/*"]
+      "@/*": ["./*"],
+      "@/components/*": ["./components/*"],
+      "@/lib/*": ["./lib/*"],
+      "@/app/*": ["./app/*"]
     }
   },
-  "include": [
-    "next-env.d.ts",
-    ".next/types/**/*.ts",
-    "**/*.ts",
-    "**/*.tsx"
-  ],
-  "exclude": [
-    "node_modules"
-  ]
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "exclude": ["node_modules"]
 }

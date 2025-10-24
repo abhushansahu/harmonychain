@@ -17,18 +17,6 @@ if (!isMacOS && !isLinux) {
 
 // Service configuration
 const services = {
-  postgres: {
-    name: 'PostgreSQL',
-    install: isMacOS ? 'brew install postgresql@14' : 'sudo apt-get install postgresql-14',
-    start: isMacOS ? 'brew services start postgresql@14' : 'sudo systemctl start postgresql',
-    check: 'psql --version'
-  },
-  redis: {
-    name: 'Redis',
-    install: isMacOS ? 'brew install redis' : 'sudo apt-get install redis-server',
-    start: isMacOS ? 'brew services start redis' : 'sudo systemctl start redis-server',
-    check: 'redis-cli --version'
-  },
   ipfs: {
     name: 'IPFS',
     install: isMacOS ? 'brew install ipfs' : 'curl -O https://dist.ipfs.io/go-ipfs/v0.20.0/go-ipfs_v0.20.0_linux-amd64.tar.gz && tar -xzf go-ipfs_v0.20.0_linux-amd64.tar.gz && sudo mv go-ipfs/ipfs /usr/local/bin/',
@@ -144,8 +132,6 @@ async function main() {
   console.log('1. Start services: npm run start:services');
   console.log('2. Start development: npm run dev');
   console.log('\n🌐 Service URLs:');
-  console.log('- PostgreSQL: localhost:5432');
-  console.log('- Redis: localhost:6379');
   console.log('- IPFS: localhost:5001');
   console.log('- Hardhat: localhost:8545');
 }

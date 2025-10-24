@@ -1,51 +1,73 @@
-// Shared error classes
-export class HarmonyError extends Error {
-  constructor(
-    message: string,
-    public code: string,
-    public statusCode: number = 500
-  ) {
+export class HarmonyChainError extends Error {
+  public statusCode: number
+  public isOperational: boolean
+
+  constructor(message: string, statusCode: number = 500, isOperational: boolean = true) {
     super(message)
-    this.name = 'HarmonyError'
+    this.name = this.constructor.name
+    this.statusCode = statusCode
+    this.isOperational = isOperational
+
+    Error.captureStackTrace(this, this.constructor)
   }
 }
 
-export class AuthError extends HarmonyError {
-  constructor(message: string = 'Authentication failed') {
-    super(message, 'AUTH_ERROR', 401)
-    this.name = 'AuthError'
+export class ValidationError extends HarmonyChainError {
+  constructor(message: string) {
+    super(message, 400)
   }
 }
 
-export class NetworkError extends HarmonyError {
-  constructor(message: string = 'Network error') {
-    super(message, 'NETWORK_ERROR', 503)
-    this.name = 'NetworkError'
-  }
-}
-
-export class ValidationError extends HarmonyError {
-  constructor(message: string = 'Validation failed') {
-    super(message, 'VALIDATION_ERROR', 400)
-    this.name = 'ValidationError'
-  }
-}
-
-export class NotFoundError extends HarmonyError {
+export class NotFoundError extends HarmonyChainError {
   constructor(message: string = 'Resource not found') {
-    super(message, 'NOT_FOUND', 404)
-    this.name = 'NotFoundError'
+    super(message, 404)
   }
 }
 
-export const handleError = (error: unknown): HarmonyError => {
-  if (error instanceof HarmonyError) {
-    return error
+export class UnauthorizedError extends HarmonyChainError {
+  constructor(message: string = 'Unauthorized access') {
+    super(message, 401)
   }
-  
-  if (error instanceof Error) {
-    return new HarmonyError(error.message, 'UNKNOWN_ERROR')
+}
+
+export class ForbiddenError extends HarmonyChainError {
+  constructor(message: string = 'Access forbidden') {
+    super(message, 403)
   }
-  
-  return new HarmonyError('An unknown error occurred', 'UNKNOWN_ERROR')
+}
+
+export class ConflictError extends HarmonyChainError {
+  constructor(message: string = 'Resource conflict') {
+    super(message, 409)
+  }
+}
+
+export class RateLimitError extends HarmonyChainError {
+  constructor(message: string = 'Rate limit exceeded') {
+    super(message, 429)
+  }
+}
+
+export class NetworkError extends HarmonyChainError {
+  constructor(message: string = 'Network error') {
+    super(message, 503)
+  }
+}
+
+export class ContractError extends HarmonyChainError {
+  constructor(message: string = 'Smart contract error') {
+    super(message, 500)
+  }
+}
+
+export class IpfsError extends HarmonyChainError {
+  constructor(message: string = 'IPFS error') {
+    super(message, 500)
+  }
+}
+
+export class FileError extends HarmonyChainError {
+  constructor(message: string = 'File processing error') {
+    super(message, 400)
+  }
 }

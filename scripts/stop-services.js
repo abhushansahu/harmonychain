@@ -6,8 +6,6 @@ console.log('🛑 Stopping HarmonyChain services...\n');
 
 // Stop services
 const services = [
-  { name: 'PostgreSQL', command: process.platform === 'darwin' ? 'brew services stop postgresql@14' : 'sudo systemctl stop postgresql' },
-  { name: 'Redis', command: process.platform === 'darwin' ? 'brew services stop redis' : 'sudo systemctl stop redis-server' },
   { name: 'IPFS', command: 'pkill -f "ipfs daemon"' },
   { name: 'Hardhat', command: 'pkill -f "hardhat node"' }
 ];

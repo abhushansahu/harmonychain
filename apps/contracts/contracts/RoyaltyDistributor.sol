@@ -3,320 +3,191 @@ pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
-/**
- * @title RoyaltyDistributor
- * @dev Handles automated royalty distribution to artists and stakeholders
- * @author HarmonyChain Team
- */
 contract RoyaltyDistributor is Ownable, ReentrancyGuard {
     using Counters for Counters.Counter;
-
+    
     Counters.Counter private _distributionIds;
-
-    struct RevenueSplit {
-        address[] recipients;
-        uint256[] percentages;
-        bool isActive;
-    }
-
-    struct Distribution {
+    
+    struct RoyaltyDistribution {
         uint256 id;
         uint256 trackId;
+        address artist;
         uint256 totalAmount;
-        address[] recipients;
-        uint256[] amounts;
-        uint256 timestamp;
-        string description;
+        uint256 artistShare;
+        uint256 platformShare;
+        uint256 governanceShare;
+        bool isDistributed;
+        uint256 createdAt;
     }
-
-    struct PendingDistribution {
+    
+    struct TrackRoyalty {
         uint256 trackId;
-        uint256 amount;
-        uint256 timestamp;
+        address artist;
+        uint256 totalEarnings;
+        uint256 artistEarnings;
+        uint256 platformEarnings;
+        uint256 governanceEarnings;
+        uint256 lastDistribution;
     }
-
-    mapping(uint256 => RevenueSplit) public trackSplits;
-    mapping(uint256 => Distribution) public distributions;
-    mapping(uint256 => PendingDistribution) public pendingDistributions;
-    mapping(address => uint256) public artistBalances;
-    mapping(address => uint256) public totalEarned;
-
-    IERC20 public paymentToken;
-    address public treasury;
-    uint256 public constant MAX_RECIPIENTS = 10;
-    uint256 public constant PERCENTAGE_PRECISION = 10000; // 100.00%
-
-    event RevenueSplitSet(
+    
+    mapping(uint256 => RoyaltyDistribution) public distributions;
+    mapping(uint256 => TrackRoyalty) public trackRoyalties;
+    mapping(address => uint256) public artistEarnings;
+    mapping(address => uint256) public platformEarnings;
+    mapping(address => uint256) public governanceEarnings;
+    
+    uint256 public artistSharePercentage = 7000; // 70%
+    uint256 public platformSharePercentage = 2000; // 20%
+    uint256 public governanceSharePercentage = 1000; // 10%
+    uint256 public constant PERCENTAGE_DENOMINATOR = 10000;
+    
+    address public governanceTreasury;
+    
+    event RoyaltyReceived(
         uint256 indexed trackId,
-        address[] recipients,
-        uint256[] percentages
+        address indexed artist,
+        uint256 amount
     );
-
-    event RoyaltiesDistributed(
+    
+    event RoyaltyDistributed(
         uint256 indexed distributionId,
         uint256 indexed trackId,
-        uint256 totalAmount,
-        address[] recipients,
-        uint256[] amounts
+        address indexed artist,
+        uint256 artistShare,
+        uint256 platformShare,
+        uint256 governanceShare
     );
-
-    event PendingDistributionCreated(
-        uint256 indexed trackId,
-        uint256 amount
+    
+    event SharePercentagesUpdated(
+        uint256 artistShare,
+        uint256 platformShare,
+        uint256 governanceShare
     );
-
-    event Withdrawal(
-        address indexed recipient,
-        uint256 amount
-    );
-
-    modifier validSplit(uint256[] memory _percentages) {
-        require(_percentages.length <= MAX_RECIPIENTS, "Too many recipients");
-        require(_percentages.length > 0, "No recipients specified");
-        
-        uint256 totalPercentage = 0;
-        for (uint256 i = 0; i < _percentages.length; i++) {
-            require(_percentages[i] > 0, "Invalid percentage");
-            totalPercentage += _percentages[i];
-        }
-        require(totalPercentage == PERCENTAGE_PRECISION, "Percentages must sum to 100%");
+    
+    modifier onlyValidAddress(address _address) {
+        require(_address != address(0), "Invalid address");
         _;
     }
-
-    constructor(address _paymentToken, address _treasury) {
-        paymentToken = IERC20(_paymentToken);
-        treasury = _treasury;
+    
+    constructor(address _governanceTreasury) onlyValidAddress(_governanceTreasury) {
+        governanceTreasury = _governanceTreasury;
     }
-
-    /**
-     * @dev Set revenue split for a track
-     * @param _trackId Track ID
-     * @param _recipients Array of recipient addresses
-     * @param _percentages Array of percentage shares (in basis points)
-     */
-    function setRevenueSplit(
-        uint256 _trackId,
-        address[] memory _recipients,
-        uint256[] memory _percentages
-    ) external validSplit(_percentages) {
-        require(_recipients.length == _percentages.length, "Arrays length mismatch");
-        require(_recipients.length > 0, "No recipients specified");
-
-        // Verify all recipients are valid addresses
-        for (uint256 i = 0; i < _recipients.length; i++) {
-            require(_recipients[i] != address(0), "Invalid recipient address");
-        }
-
-        trackSplits[_trackId] = RevenueSplit({
-            recipients: _recipients,
-            percentages: _percentages,
-            isActive: true
-        });
-
-        emit RevenueSplitSet(_trackId, _recipients, _percentages);
+    
+    function receiveRoyalty(uint256 _trackId, address _artist) external payable {
+        require(msg.value > 0, "No payment received");
+        require(_artist != address(0), "Invalid artist address");
+        
+        // Update track royalty
+        trackRoyalties[_trackId].trackId = _trackId;
+        trackRoyalties[_trackId].artist = _artist;
+        trackRoyalties[_trackId].totalEarnings += msg.value;
+        
+        emit RoyaltyReceived(_trackId, _artist, msg.value);
     }
-
-    /**
-     * @dev Distribute royalties for a track
-     * @param _trackId Track ID
-     * @param _amount Total amount to distribute
-     * @param _description Description of the distribution
-     */
-    function distributeRoyalties(
-        uint256 _trackId,
-        uint256 _amount,
-        string memory _description
-    ) external nonReentrant {
-        require(_amount > 0, "Amount must be greater than 0");
-        require(trackSplits[_trackId].isActive, "No revenue split set for track");
-        require(paymentToken.balanceOf(address(this)) >= _amount, "Insufficient balance");
-
-        RevenueSplit memory split = trackSplits[_trackId];
-        uint256[] memory amounts = new uint256[](split.recipients.length);
-
-        // Calculate amounts for each recipient
-        for (uint256 i = 0; i < split.recipients.length; i++) {
-            amounts[i] = (_amount * split.percentages[i]) / PERCENTAGE_PRECISION;
-        }
-
-        // Verify total amounts don't exceed available balance
-        uint256 totalDistributed = 0;
-        for (uint256 i = 0; i < amounts.length; i++) {
-            totalDistributed += amounts[i];
-        }
-        require(totalDistributed <= _amount, "Distribution exceeds available balance");
-
+    
+    function distributeRoyalties(uint256 _trackId) external onlyOwner nonReentrant {
+        TrackRoyalty storage trackRoyalty = trackRoyalties[_trackId];
+        require(trackRoyalty.totalEarnings > 0, "No earnings to distribute");
+        require(!distributions[_distributionIds.current() + 1].isDistributed, "Already distributed");
+        
+        uint256 totalAmount = trackRoyalty.totalEarnings;
+        uint256 artistShare = (totalAmount * artistSharePercentage) / PERCENTAGE_DENOMINATOR;
+        uint256 platformShare = (totalAmount * platformSharePercentage) / PERCENTAGE_DENOMINATOR;
+        uint256 governanceShare = (totalAmount * governanceSharePercentage) / PERCENTAGE_DENOMINATOR;
+        
         _distributionIds.increment();
         uint256 distributionId = _distributionIds.current();
-
-        distributions[distributionId] = Distribution({
+        
+        distributions[distributionId] = RoyaltyDistribution({
             id: distributionId,
             trackId: _trackId,
-            totalAmount: _amount,
-            recipients: split.recipients,
-            amounts: amounts,
-            timestamp: block.timestamp,
-            description: _description
+            artist: trackRoyalty.artist,
+            totalAmount: totalAmount,
+            artistShare: artistShare,
+            platformShare: platformShare,
+            governanceShare: governanceShare,
+            isDistributed: true,
+            createdAt: block.timestamp
         });
-
-        // Transfer tokens to recipients
-        for (uint256 i = 0; i < split.recipients.length; i++) {
-            if (amounts[i] > 0) {
-                require(
-                    paymentToken.transfer(split.recipients[i], amounts[i]),
-                    "Transfer failed"
-                );
-                
-                // Update tracking
-                artistBalances[split.recipients[i]] += amounts[i];
-                totalEarned[split.recipients[i]] += amounts[i];
-            }
-        }
-
-        emit RoyaltiesDistributed(
+        
+        // Update track royalty
+        trackRoyalty.artistEarnings += artistShare;
+        trackRoyalty.platformEarnings += platformShare;
+        trackRoyalty.governanceEarnings += governanceShare;
+        trackRoyalty.lastDistribution = block.timestamp;
+        
+        // Update global earnings
+        artistEarnings[trackRoyalty.artist] += artistShare;
+        platformEarnings[owner()] += platformShare;
+        governanceEarnings[governanceTreasury] += governanceShare;
+        
+        // Transfer payments
+        (bool success1, ) = trackRoyalty.artist.call{value: artistShare}("");
+        require(success1, "Artist payment failed");
+        
+        (bool success2, ) = owner().call{value: platformShare}("");
+        require(success2, "Platform payment failed");
+        
+        (bool success3, ) = governanceTreasury.call{value: governanceShare}("");
+        require(success3, "Governance payment failed");
+        
+        // Reset track earnings
+        trackRoyalty.totalEarnings = 0;
+        
+        emit RoyaltyDistributed(
             distributionId,
             _trackId,
-            _amount,
-            split.recipients,
-            amounts
+            trackRoyalty.artist,
+            artistShare,
+            platformShare,
+            governanceShare
         );
     }
-
-    /**
-     * @dev Create a pending distribution (for manual review)
-     * @param _trackId Track ID
-     * @param _amount Amount to be distributed
-     */
-    function createPendingDistribution(
-        uint256 _trackId,
-        uint256 _amount
+    
+    function updateSharePercentages(
+        uint256 _artistShare,
+        uint256 _platformShare,
+        uint256 _governanceShare
     ) external onlyOwner {
-        require(_amount > 0, "Amount must be greater than 0");
-        require(paymentToken.balanceOf(address(this)) >= _amount, "Insufficient balance");
-
-        pendingDistributions[_trackId] = PendingDistribution({
-            trackId: _trackId,
-            amount: _amount,
-            timestamp: block.timestamp
-        });
-
-        emit PendingDistributionCreated(_trackId, _amount);
+        require(
+            _artistShare + _platformShare + _governanceShare == PERCENTAGE_DENOMINATOR,
+            "Total percentage must equal 100%"
+        );
+        
+        artistSharePercentage = _artistShare;
+        platformSharePercentage = _platformShare;
+        governanceSharePercentage = _governanceShare;
+        
+        emit SharePercentagesUpdated(_artistShare, _platformShare, _governanceShare);
     }
-
-    /**
-     * @dev Execute a pending distribution
-     * @param _trackId Track ID
-     * @param _description Description of the distribution
-     */
-    function executePendingDistribution(
-        uint256 _trackId,
-        string memory _description
-    ) external onlyOwner {
-        PendingDistribution memory pending = pendingDistributions[_trackId];
-        require(pending.amount > 0, "No pending distribution for track");
-
-        // Clear pending distribution
-        delete pendingDistributions[_trackId];
-
-        // Execute distribution
-        distributeRoyalties(_trackId, pending.amount, _description);
+    
+    function updateGovernanceTreasury(address _newTreasury) external onlyOwner onlyValidAddress(_newTreasury) {
+        governanceTreasury = _newTreasury;
     }
-
-    /**
-     * @dev Get revenue split for a track
-     * @param _trackId Track ID
-     * @return RevenueSplit struct
-     */
-    function getRevenueSplit(uint256 _trackId) external view returns (RevenueSplit memory) {
-        return trackSplits[_trackId];
+    
+    function getTrackRoyalty(uint256 _trackId) external view returns (TrackRoyalty memory) {
+        return trackRoyalties[_trackId];
     }
-
-    /**
-     * @dev Get distribution information
-     * @param _distributionId Distribution ID
-     * @return Distribution struct
-     */
-    function getDistribution(uint256 _distributionId) external view returns (Distribution memory) {
-        require(distributions[_distributionId].id != 0, "Distribution not found");
+    
+    function getDistribution(uint256 _distributionId) external view returns (RoyaltyDistribution memory) {
         return distributions[_distributionId];
     }
-
-    /**
-     * @dev Get artist's total earnings
-     * @param _artist Artist address
-     * @return Total earnings
-     */
+    
     function getArtistEarnings(address _artist) external view returns (uint256) {
-        return totalEarned[_artist];
+        return artistEarnings[_artist];
     }
-
-    /**
-     * @dev Get artist's current balance
-     * @param _artist Artist address
-     * @return Current balance
-     */
-    function getArtistBalance(address _artist) external view returns (uint256) {
-        return artistBalances[_artist];
+    
+    function getPlatformEarnings(address _platform) external view returns (uint256) {
+        return platformEarnings[_platform];
     }
-
-    /**
-     * @dev Withdraw artist's balance
-     * @param _amount Amount to withdraw
-     */
-    function withdraw(uint256 _amount) external nonReentrant {
-        require(_amount > 0, "Amount must be greater than 0");
-        require(artistBalances[msg.sender] >= _amount, "Insufficient balance");
-
-        artistBalances[msg.sender] -= _amount;
-
-        require(
-            paymentToken.transfer(msg.sender, _amount),
-            "Transfer failed"
-        );
-
-        emit Withdrawal(msg.sender, _amount);
+    
+    function getGovernanceEarnings(address _treasury) external view returns (uint256) {
+        return governanceEarnings[_treasury];
     }
-
-    /**
-     * @dev Update treasury address
-     * @param _newTreasury New treasury address
-     */
-    function updateTreasury(address _newTreasury) external onlyOwner {
-        require(_newTreasury != address(0), "Invalid treasury address");
-        treasury = _newTreasury;
-    }
-
-    /**
-     * @dev Emergency withdrawal (only owner)
-     * @param _amount Amount to withdraw
-     */
-    function emergencyWithdraw(uint256 _amount) external onlyOwner {
-        require(_amount > 0, "Amount must be greater than 0");
-        require(paymentToken.balanceOf(address(this)) >= _amount, "Insufficient balance");
-
-        require(
-            paymentToken.transfer(owner(), _amount),
-            "Transfer failed"
-        );
-    }
-
-    /**
-     * @dev Get total number of distributions
-     * @return Total distribution count
-     */
+    
     function getTotalDistributions() external view returns (uint256) {
         return _distributionIds.current();
-    }
-
-    /**
-     * @dev Check if track has pending distribution
-     * @param _trackId Track ID
-     * @return True if pending distribution exists
-     */
-    function hasPendingDistribution(uint256 _trackId) external view returns (bool) {
-        return pendingDistributions[_trackId].amount > 0;
     }
 }

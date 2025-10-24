@@ -1,43 +1,32 @@
-import { Request, Response, NextFunction } from 'express';
-import { RateLimiterRedis } from 'rate-limiter-flexible';
-import { getRedisClient } from '../config/redis';
-import { logger } from '../utils/logger';
+import { Request, Response, NextFunction } from 'express'
 
-const rateLimiter = new RateLimiterRedis({
-  storeClient: getRedisClient(),
-  keyPrefix: 'rl',
-  points: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
-  duration: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
-});
+// Simple in-memory rate limiter for Web3 API
+const requests = new Map<string, { count: number; resetTime: number }>()
 
-export const rateLimiterMiddleware = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
-    const key = req.ip || 'unknown';
-    await rateLimiter.consume(key);
-    next();
-  } catch (rejRes: any) {
-    const secs = Math.round(rejRes.msBeforeNext / 1000) || 1;
+export const rateLimiter = (maxRequests: number = 100, windowMs: number = 15 * 60 * 1000) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const clientId = req.ip || 'unknown'
+    const now = Date.now()
     
-    logger.warn('Rate limit exceeded:', {
-      ip: req.ip,
-      url: req.url,
-      method: req.method,
-      retryAfter: secs,
-    });
-
-    res.set('Retry-After', String(secs));
-    res.status(429).json({
-      success: false,
-      error: {
-        message: 'Too many requests',
-        retryAfter: secs,
-      },
-    });
+    const clientData = requests.get(clientId)
+    
+    if (clientData) {
+      if (now < clientData.resetTime) {
+        if (clientData.count >= maxRequests) {
+          return res.status(429).json({
+            success: false,
+            error: 'Too Many Requests',
+            message: 'Rate limit exceeded. Please try again later.'
+          })
+        }
+        clientData.count++
+      } else {
+        requests.set(clientId, { count: 1, resetTime: now + windowMs })
+      }
+    } else {
+      requests.set(clientId, { count: 1, resetTime: now + windowMs })
+    }
+    
+    next()
   }
-};
-
-export { rateLimiterMiddleware as rateLimiter };
+}

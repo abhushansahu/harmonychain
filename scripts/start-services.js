@@ -9,41 +9,6 @@ console.log('🚀 Starting HarmonyChain services...\n');
 // Service processes
 const processes = [];
 
-// Start PostgreSQL
-function startPostgreSQL() {
-  console.log('🗄️  Starting PostgreSQL...');
-  
-  const isMacOS = process.platform === 'darwin';
-  const command = isMacOS ? 'brew' : 'sudo systemctl';
-  const args = isMacOS ? ['services', 'start', 'postgresql@14'] : ['start', 'postgresql'];
-  
-  const pgProcess = spawn(command, args, { stdio: 'inherit' });
-  processes.push(pgProcess);
-  
-  pgProcess.on('error', (error) => {
-    console.error('❌ Failed to start PostgreSQL:', error.message);
-  });
-  
-  console.log('✅ PostgreSQL started');
-}
-
-// Start Redis
-function startRedis() {
-  console.log('🔴 Starting Redis...');
-  
-  const isMacOS = process.platform === 'darwin';
-  const command = isMacOS ? 'brew' : 'sudo systemctl';
-  const args = isMacOS ? ['services', 'start', 'redis'] : ['start', 'redis-server'];
-  
-  const redisProcess = spawn(command, args, { stdio: 'inherit' });
-  processes.push(redisProcess);
-  
-  redisProcess.on('error', (error) => {
-    console.error('❌ Failed to start Redis:', error.message);
-  });
-  
-  console.log('✅ Redis started');
-}
 
 // Start IPFS
 function startIPFS() {
@@ -111,11 +76,6 @@ async function main() {
     console.log('🔍 Checking service status...');
     
     // Start services
-    startPostgreSQL();
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    startRedis();
-    await new Promise(resolve => setTimeout(resolve, 2000));
     
     startIPFS();
     await new Promise(resolve => setTimeout(resolve, 3000));
@@ -124,8 +84,6 @@ async function main() {
     
     console.log('\n🎉 All services started successfully!');
     console.log('\n📊 Service Status:');
-    console.log('- PostgreSQL: localhost:5432');
-    console.log('- Redis: localhost:6379');
     console.log('- IPFS: localhost:5001');
     console.log('- Hardhat: localhost:8545');
     console.log('\n💡 Press Ctrl+C to stop all services');

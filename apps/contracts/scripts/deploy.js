@@ -1,66 +1,125 @@
-const { ethers } = require("hardhat");
+const hre = require("hardhat");
 
 async function main() {
-  console.log("Starting HarmonyChain contract deployment...");
+  console.log("🚀 Starting deployment of HarmonyChain contracts...");
 
   // Get the contract factories
-  const MusicRegistry = await ethers.getContractFactory("MusicRegistry");
-  const LicenseManager = await ethers.getContractFactory("LicenseManager");
-  const RoyaltyDistributor = await ethers.getContractFactory("RoyaltyDistributor");
-  const GovernanceDAO = await ethers.getContractFactory("GovernanceDAO");
+  const MusicRegistry = await hre.ethers.getContractFactory("MusicRegistry");
+  const NFTMarketplace = await hre.ethers.getContractFactory("NFTMarketplace");
+  const RoyaltyDistributor = await hre.ethers.getContractFactory("RoyaltyDistributor");
+  const GovernanceDAO = await hre.ethers.getContractFactory("GovernanceDAO");
 
   // Deploy MusicRegistry
-  console.log("Deploying MusicRegistry...");
+  console.log("📝 Deploying MusicRegistry...");
   const musicRegistry = await MusicRegistry.deploy();
-  await musicRegistry.deployed();
-  console.log("MusicRegistry deployed to:", musicRegistry.address);
+  await musicRegistry.waitForDeployment();
+  const musicRegistryAddress = await musicRegistry.getAddress();
+  console.log("✅ MusicRegistry deployed to:", musicRegistryAddress);
 
-  // Deploy LicenseManager (requires payment token and treasury)
-  // For now, we'll use a mock USDC token address
-  const mockUSDC = "0xA0b86a33E6441c8C3C7B8C4C8C8C8C8C8C8C8C8C8"; // Mock USDC address
-  const treasury = "0x1234567890123456789012345678901234567890"; // Treasury address
-
-  console.log("Deploying LicenseManager...");
-  const licenseManager = await LicenseManager.deploy(mockUSDC, treasury);
-  await licenseManager.deployed();
-  console.log("LicenseManager deployed to:", licenseManager.address);
+  // Deploy NFTMarketplace
+  console.log("🎨 Deploying NFTMarketplace...");
+  const nftMarketplace = await NFTMarketplace.deploy();
+  await nftMarketplace.waitForDeployment();
+  const nftMarketplaceAddress = await nftMarketplace.getAddress();
+  console.log("✅ NFTMarketplace deployed to:", nftMarketplaceAddress);
 
   // Deploy RoyaltyDistributor
-  console.log("Deploying RoyaltyDistributor...");
-  const royaltyDistributor = await RoyaltyDistributor.deploy(mockUSDC, treasury);
-  await royaltyDistributor.deployed();
-  console.log("RoyaltyDistributor deployed to:", royaltyDistributor.address);
+  console.log("💰 Deploying RoyaltyDistributor...");
+  const royaltyDistributor = await RoyaltyDistributor.deploy(musicRegistryAddress);
+  await royaltyDistributor.waitForDeployment();
+  const royaltyDistributorAddress = await royaltyDistributor.getAddress();
+  console.log("✅ RoyaltyDistributor deployed to:", royaltyDistributorAddress);
 
-  // Deploy GovernanceDAO (requires governance token)
-  const mockGovernanceToken = "0xB0c86a33E6441c8C3C7B8C4C8C8C8C8C8C8C8C8C8"; // Mock governance token
-  console.log("Deploying GovernanceDAO...");
-  const governanceDAO = await GovernanceDAO.deploy(mockGovernanceToken);
-  await governanceDAO.deployed();
-  console.log("GovernanceDAO deployed to:", governanceDAO.address);
+  // Deploy GovernanceDAO
+  console.log("🗳️ Deploying GovernanceDAO...");
+  const governanceDAO = await GovernanceDAO.deploy();
+  await governanceDAO.waitForDeployment();
+  const governanceDAOAddress = await governanceDAO.getAddress();
+  console.log("✅ GovernanceDAO deployed to:", governanceDAOAddress);
 
-  // Set up initial configurations
-  console.log("Setting up initial configurations...");
+  // Add some initial DAO members
+  console.log("👥 Adding initial DAO members...");
+  const [deployer] = await hre.ethers.getSigners();
+  await governanceDAO.addMember(deployer.address, 10000);
+  console.log("✅ Added deployer as DAO member with 10000 voting power");
 
-  // Set track owners in LicenseManager (for testing)
-  await licenseManager.setTrackOwner(1, ethers.constants.AddressZero);
-  await licenseManager.setTrackOwner(2, ethers.constants.AddressZero);
+  // Verify contracts on Harmony Explorer (if not localhost)
+  if (hre.network.name !== "localhost" && hre.network.name !== "hardhat") {
+    console.log("🔍 Verifying contracts on Harmony Explorer...");
+    
+    try {
+      await hre.run("verify:verify", {
+        address: musicRegistryAddress,
+        constructorArguments: [],
+      });
+      console.log("✅ MusicRegistry verified");
+    } catch (error) {
+      console.log("❌ MusicRegistry verification failed:", error.message);
+    }
 
-  console.log("Deployment completed successfully!");
-  console.log("\n=== DEPLOYMENT SUMMARY ===");
-  console.log("MusicRegistry:", musicRegistry.address);
-  console.log("LicenseManager:", licenseManager.address);
-  console.log("RoyaltyDistributor:", royaltyDistributor.address);
-  console.log("GovernanceDAO:", governanceDAO.address);
-  console.log("\n=== NEXT STEPS ===");
-  console.log("1. Verify contracts on block explorer");
-  console.log("2. Update frontend with contract addresses");
-  console.log("3. Set up IPFS node");
-  console.log("4. Configure API endpoints");
+    try {
+      await hre.run("verify:verify", {
+        address: nftMarketplaceAddress,
+        constructorArguments: [],
+      });
+      console.log("✅ NFTMarketplace verified");
+    } catch (error) {
+      console.log("❌ NFTMarketplace verification failed:", error.message);
+    }
+
+    try {
+      await hre.run("verify:verify", {
+        address: royaltyDistributorAddress,
+        constructorArguments: [musicRegistryAddress],
+      });
+      console.log("✅ RoyaltyDistributor verified");
+    } catch (error) {
+      console.log("❌ RoyaltyDistributor verification failed:", error.message);
+    }
+
+    try {
+      await hre.run("verify:verify", {
+        address: governanceDAOAddress,
+        constructorArguments: [],
+      });
+      console.log("✅ GovernanceDAO verified");
+    } catch (error) {
+      console.log("❌ GovernanceDAO verification failed:", error.message);
+    }
+  }
+
+  // Save deployment info
+  const deploymentInfo = {
+    network: hre.network.name,
+    chainId: hre.network.config.chainId,
+    contracts: {
+      MusicRegistry: musicRegistryAddress,
+      NFTMarketplace: nftMarketplaceAddress,
+      RoyaltyDistributor: royaltyDistributorAddress,
+      GovernanceDAO: governanceDAOAddress,
+    },
+    deployer: deployer.address,
+    timestamp: new Date().toISOString(),
+  };
+
+  console.log("\n📋 Deployment Summary:");
+  console.log("====================");
+  console.log(`Network: ${deploymentInfo.network}`);
+  console.log(`Chain ID: ${deploymentInfo.chainId}`);
+  console.log(`Deployer: ${deploymentInfo.deployer}`);
+  console.log("\nContract Addresses:");
+  console.log(`MusicRegistry: ${deploymentInfo.contracts.MusicRegistry}`);
+  console.log(`NFTMarketplace: ${deploymentInfo.contracts.NFTMarketplace}`);
+  console.log(`RoyaltyDistributor: ${deploymentInfo.contracts.RoyaltyDistributor}`);
+  console.log(`GovernanceDAO: ${deploymentInfo.contracts.GovernanceDAO}`);
+
+  console.log("\n🎉 Deployment completed successfully!");
+  console.log("💡 Don't forget to update your environment variables with the new contract addresses.");
 }
 
 main()
   .then(() => process.exit(0))
   .catch((error) => {
-    console.error("Deployment failed:", error);
+    console.error("❌ Deployment failed:", error);
     process.exit(1);
   });

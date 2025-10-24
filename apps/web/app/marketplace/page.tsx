@@ -1,198 +1,218 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import Navigation from '@/components/layout/Navigation'
 import Footer from '@/components/layout/Footer'
-import { motion } from 'framer-motion'
-import { Music, DollarSign, TrendingUp, Clock, Users } from 'lucide-react'
+import NFTMarketplace from '@/components/nft/NFTMarketplace'
+import OwnershipDisplay from '@/components/nft/OwnershipDisplay'
+import PriceFeed from '@/components/ui/PriceFeed'
+import { NFT } from '@/lib/types'
+import { apiClient } from '@/lib/api/client'
+import toast from 'react-hot-toast'
 
 export default function MarketplacePage() {
-  const nftCollections = [
+  const [activeTab, setActiveTab] = useState<'marketplace' | 'my-nfts'>('marketplace')
+  const [nfts, setNfts] = useState<NFT[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Fetch NFTs from API
+  useEffect(() => {
+    const fetchNFTs = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        
+        const response = await apiClient.getNFTs()
+        
+        if (response.success && response.data) {
+          // Map API response to expected NFT format
+          const mappedNFTs = response.data.map(nft => ({
+            ...nft,
+            trackId: '', // Will be populated from metadata
+            artistId: '', // Will be populated from metadata
+            contractAddress: '', // Will be populated from blockchain
+            metadata: {
+              name: `NFT #${nft.tokenId}`,
+              description: 'Music NFT',
+              image: '',
+              attributes: []
+            }
+          }))
+          setNfts(mappedNFTs)
+        } else {
+          console.warn('Failed to fetch NFTs:', response.error)
+          setNfts([])
+        }
+      } catch (err) {
+        console.error('Error fetching NFTs:', err)
+        setError('Failed to load NFTs')
+        toast.error('Failed to load NFTs')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchNFTs()
+  }, [])
+
+  // Mock NFT data - fallback for development
+  const mockNFTs: NFT[] = [
     {
-      id: 1,
-      title: "Harmony Dreams Collection",
-      artist: "CryptoBeats",
-      price: "0.5 ONE",
-      image: "/api/placeholder/300/300",
-      rarity: "Rare",
-      sales: "12"
+      id: '1',
+      trackId: '1',
+      artistId: '1',
+      owner: '0x1234567890123456789012345678901234567890',
+      price: 0.5,
+      tokenId: '1',
+      contractAddress: '0xabcdef1234567890abcdef1234567890abcdef12',
+      metadata: {
+        name: 'Digital Dreams #1',
+        description: 'Exclusive NFT version of Digital Dreams by CryptoBeats',
+        image: '/api/placeholder/300/300',
+        attributes: [
+          { trait_type: 'Artist', value: 'CryptoBeats' },
+          { trait_type: 'Genre', value: 'Electronic' },
+          { trait_type: 'Rarity', value: 'Rare' },
+          { trait_type: 'Year', value: '2024' }
+        ]
+      },
+      createdAt: '2024-01-15T10:00:00Z'
     },
     {
-      id: 2,
-      title: "Blockchain Blues #1",
-      artist: "DeFi Diva",
-      price: "1.2 ONE",
-      image: "/api/placeholder/300/300",
-      rarity: "Epic",
-      sales: "8"
+      id: '2',
+      trackId: '2',
+      artistId: '2',
+      owner: '0x2345678901234567890123456789012345678901',
+      price: 1.2,
+      tokenId: '2',
+      contractAddress: '0xabcdef1234567890abcdef1234567890abcdef12',
+      metadata: {
+        name: 'Blockchain Blues #1',
+        description: 'First NFT in the Blockchain Blues collection',
+        image: '/api/placeholder/300/300',
+        attributes: [
+          { trait_type: 'Artist', value: 'DeFi Diva' },
+          { trait_type: 'Genre', value: 'Blues' },
+          { trait_type: 'Rarity', value: 'Epic' },
+          { trait_type: 'Year', value: '2024' }
+        ]
+      },
+      createdAt: '2024-01-14T15:30:00Z'
     },
     {
-      id: 3,
-      title: "Web3 Symphony",
-      artist: "Web3 Orchestra",
-      price: "0.8 ONE",
-      image: "/api/placeholder/300/300",
-      rarity: "Legendary",
-      sales: "5"
+      id: '3',
+      trackId: '3',
+      artistId: '3',
+      owner: '0x3456789012345678901234567890123456789012',
+      price: 0.8,
+      tokenId: '3',
+      contractAddress: '0xabcdef1234567890abcdef1234567890abcdef12',
+      metadata: {
+        name: 'Web3 Symphony',
+        description: 'Classical composition for the Web3 era',
+        image: '/api/placeholder/300/300',
+        attributes: [
+          { trait_type: 'Artist', value: 'Web3 Orchestra' },
+          { trait_type: 'Genre', value: 'Classical' },
+          { trait_type: 'Rarity', value: 'Legendary' },
+          { trait_type: 'Year', value: '2024' }
+        ]
+      },
+      createdAt: '2024-01-13T09:15:00Z'
     }
   ]
 
-  const stats = [
-    { label: "Total NFTs", value: "15,000+", icon: Music },
-    { label: "Artists", value: "2,500+", icon: Users },
-    { label: "Volume", value: "50K ONE", icon: DollarSign },
-    { label: "Avg Price", value: "1.2 ONE", icon: TrendingUp }
-  ]
+  const handlePurchase = (nft: NFT) => {
+    console.log('Purchasing NFT:', nft)
+    // In a real app, this would trigger a blockchain transaction
+  }
+
+  const handleLike = (nftId: string) => {
+    console.log('Liking NFT:', nftId)
+    // In a real app, this would update the like status
+  }
+
+  const handleShare = (nft: NFT) => {
+    console.log('Sharing NFT:', nft)
+    // In a real app, this would open share dialog
+  }
+
+  const handleTransfer = (nft: NFT) => {
+    console.log('Transferring NFT:', nft)
+    // In a real app, this would open transfer dialog
+  }
+
+  const handleSell = (nft: NFT) => {
+    console.log('Selling NFT:', nft)
+    // In a real app, this would open sell dialog
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       <Navigation />
       
-      <main className="pt-20">
-        {/* Hero Section */}
-        <section className="py-20 px-4">
-          <div className="max-w-7xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="text-center mb-16"
-            >
-              <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
-                NFT <span className="gradient-text">Marketplace</span>
-              </h1>
-              <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-                Buy, sell, and trade music NFTs. Own unique pieces of digital music history on Harmony Network
-              </p>
-            </motion.div>
-
-            {/* Stats */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16"
-            >
-              {stats.map((stat, index) => (
-                <div key={stat.label} className="text-center">
-                  <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-500/20 rounded-full mb-4">
-                    <stat.icon className="w-8 h-8 text-blue-400" />
-                  </div>
-                  <h3 className="text-3xl font-bold text-white mb-2">{stat.value}</h3>
-                  <p className="text-gray-400">{stat.label}</p>
-                </div>
-              ))}
-            </motion.div>
-          </div>
-        </section>
-
-        {/* Featured NFTs */}
-        <section className="py-16 px-4">
-          <div className="max-w-7xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="mb-12"
-            >
-              <h2 className="text-4xl font-bold text-white mb-4">🔥 Featured NFTs</h2>
-              <p className="text-gray-300">Rare and exclusive music NFTs from top artists</p>
-            </motion.div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {nftCollections.map((nft, index) => (
-                <motion.div
-                  key={nft.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: index * 0.1 }}
-                  className="music-card group"
-                >
-                  <div className="relative mb-4">
-                    <div className="w-full h-48 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                      <Music className="w-16 h-16 text-white" />
-                    </div>
-                    <div className="absolute top-2 right-2 bg-black/50 backdrop-blur-sm px-2 py-1 rounded text-xs text-white">
-                      {nft.rarity}
-                    </div>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="text-lg font-semibold text-white mb-2">{nft.title}</h3>
-                    <p className="text-gray-400 mb-4">by {nft.artist}</p>
-                    <div className="flex justify-between items-center mb-4">
-                      <span className="text-2xl font-bold text-white">{nft.price}</span>
-                      <span className="text-sm text-gray-500">{nft.sales} sales</span>
-                    </div>
-                    <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors">
-                      Buy Now
-                    </button>
-                  </div>
-                </motion.div>
-              ))}
+      <div className="pt-20 pb-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-bold text-white mb-4">NFT Marketplace</h1>
+            <p className="text-xl text-gray-300 mb-4">
+              Discover and collect unique music NFTs
+            </p>
+            <div className="flex justify-center items-center space-x-6">
+              <PriceFeed symbol="ONE" />
+              <PriceFeed symbol="ETH" />
+              <PriceFeed symbol="USDC" />
             </div>
           </div>
-        </section>
 
-        {/* How It Works */}
-        <section className="py-20 px-4 bg-black/20">
-          <div className="max-w-7xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="text-center mb-16"
-            >
-              <h2 className="text-4xl md:text-6xl font-bold text-white mb-6">
-                How <span className="gradient-text">NFTs Work</span>
-              </h2>
-              <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-                Music NFTs represent ownership of unique digital music pieces on the blockchain
-              </p>
-            </motion.div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.1 }}
-                className="text-center"
+          {/* Tab Navigation */}
+          <div className="flex justify-center mb-8">
+            <div className="bg-white rounded-lg p-1 shadow-lg">
+              <button
+                onClick={() => setActiveTab('marketplace')}
+                className={`px-6 py-2 rounded-md font-medium transition-colors ${
+                  activeTab === 'marketplace'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
               >
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-500/20 rounded-full mb-6">
-                  <Music className="w-8 h-8 text-blue-400" />
-                </div>
-                <h3 className="text-2xl font-semibold text-white mb-4">1. Create</h3>
-                <p className="text-gray-300">Artists mint their music as unique NFTs on Harmony Network</p>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-                className="text-center"
+                Browse Marketplace
+              </button>
+              <button
+                onClick={() => setActiveTab('my-nfts')}
+                className={`px-6 py-2 rounded-md font-medium transition-colors ${
+                  activeTab === 'my-nfts'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
               >
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-green-500/20 rounded-full mb-6">
-                  <DollarSign className="w-8 h-8 text-green-400" />
-                </div>
-                <h3 className="text-2xl font-semibold text-white mb-4">2. Trade</h3>
-                <p className="text-gray-300">Buy and sell music NFTs in our decentralized marketplace</p>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.3 }}
-                className="text-center"
-              >
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-500/20 rounded-full mb-6">
-                  <TrendingUp className="w-8 h-8 text-purple-400" />
-                </div>
-                <h3 className="text-2xl font-semibold text-white mb-4">3. Own</h3>
-                <p className="text-gray-300">Own unique pieces of music history and support your favorite artists</p>
-              </motion.div>
+                My NFTs
+              </button>
             </div>
           </div>
-        </section>
-      </main>
+
+          {/* Tab Content */}
+          {activeTab === 'marketplace' && (
+            <NFTMarketplace
+              nfts={nfts.length > 0 ? nfts : mockNFTs}
+              onPurchase={handlePurchase}
+              onLike={handleLike}
+              onShare={handleShare}
+            />
+          )}
+
+          {activeTab === 'my-nfts' && (
+            <OwnershipDisplay
+              nfts={nfts.length > 0 ? nfts.filter(nft => nft.owner === '0x1234567890123456789012345678901234567890') : mockNFTs.filter(nft => nft.owner === '0x1234567890123456789012345678901234567890')}
+              onTransfer={handleTransfer}
+              onSell={handleSell}
+              onShare={handleShare}
+            />
+          )}
+        </div>
+      </div>
 
       <Footer />
     </div>

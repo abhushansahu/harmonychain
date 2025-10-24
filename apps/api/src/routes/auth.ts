@@ -1,62 +1,111 @@
-import { Router, Request, Response } from 'express';
-import { logger } from '../utils/logger';
+import { Router } from 'express'
+import { ApiResponse } from '../types'
+import { AuthService } from '../services/authService'
+import { authenticateToken } from '../middleware/auth'
 
-const router = Router();
+const router = Router()
 
-// POST /api/auth/register - Register new user
-router.post('/register', async (req: Request, res: Response) => {
+// Generate nonce for SIWE
+router.get('/nonce', async (req, res) => {
   try {
-    const { walletAddress, username, email } = req.body;
-
-    if (!walletAddress || !username) {
-      return res.status(400).json({
-        success: false,
-        error: { message: 'Missing required fields' },
-      });
-    }
-
-    // TODO: Implement user registration logic
-    logger.info('User registration request:', { walletAddress, username });
-
-    res.status(201).json({
+    const nonce = await AuthService.generateNonce()
+    
+    const response: ApiResponse = {
       success: true,
-      data: { message: 'User registered successfully' },
-    });
+      data: { nonce },
+      message: 'Nonce generated successfully'
+    }
+    
+    res.json(response)
   } catch (error) {
-    logger.error('Error registering user:', error);
-    res.status(500).json({
+    const response: ApiResponse = {
       success: false,
-      error: { message: 'Failed to register user' },
-    });
+      error: 'Failed to generate nonce',
+      message: 'An error occurred while generating nonce'
+    }
+    res.status(500).json(response)
   }
-});
+})
 
-// POST /api/auth/login - Login user
-router.post('/login', async (req: Request, res: Response) => {
+// Verify SIWE signature
+router.post('/verify', async (req, res) => {
   try {
-    const { walletAddress, signature } = req.body;
-
-    if (!walletAddress || !signature) {
-      return res.status(400).json({
+    const { message, signature, address } = req.body
+    
+    if (!message || !signature || !address) {
+      const response: ApiResponse = {
         success: false,
-        error: { message: 'Missing required fields' },
-      });
+        error: 'Missing required fields',
+        message: 'Message, signature, and address are required'
+      }
+      return res.status(400).json(response)
     }
-
-    // TODO: Implement signature verification and JWT generation
-    logger.info('User login request:', { walletAddress });
-
-    res.json({
+    
+    const result = await AuthService.verifySignature(message, signature, address)
+    
+    if (!result.success) {
+      const response: ApiResponse = {
+        success: false,
+        error: result.error || 'Verification failed',
+        message: 'Signature verification failed'
+      }
+      return res.status(401).json(response)
+    }
+    
+    const response: ApiResponse = {
       success: true,
-      data: { message: 'Login successful' },
-    });
+      data: { 
+        token: result.token,
+        user: result.user
+      },
+      message: 'Authentication successful'
+    }
+    
+    res.json(response)
   } catch (error) {
-    logger.error('Error logging in user:', error);
-    res.status(500).json({
+    console.error('Auth verification error:', error)
+    const response: ApiResponse = {
       success: false,
-      error: { message: 'Failed to login user' },
-    });
+      error: 'Authentication failed',
+      message: 'An error occurred during authentication'
+    }
+    res.status(500).json(response)
   }
-});
+})
 
-export default router;
+// Get user profile
+router.get('/profile', authenticateToken, async (req, res) => {
+  try {
+    const response: ApiResponse = {
+      success: true,
+      data: {
+        address: req.user?.address,
+        chainId: req.user?.chainId,
+        isArtist: false, // This would be checked against blockchain
+        createdAt: new Date().toISOString()
+      },
+      message: 'Profile retrieved successfully'
+    }
+    
+    res.json(response)
+  } catch (error) {
+    const response: ApiResponse = {
+      success: false,
+      error: 'Failed to fetch profile',
+      message: 'An error occurred while fetching profile'
+    }
+    res.status(500).json(response)
+  }
+})
+
+// Logout (client-side token removal)
+router.post('/logout', (req, res) => {
+  const response: ApiResponse = {
+    success: true,
+    message: 'Logout successful'
+  }
+  
+  res.json(response)
+})
+
+export default router

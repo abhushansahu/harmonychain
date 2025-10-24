@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-// import { ConnectButton } from '@rainbow-me/rainbowkit'
+import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { Menu, X, Music } from 'lucide-react'
 
 export default function Navigation() {
@@ -41,9 +41,7 @@ export default function Navigation() {
 
           {/* Connect Button */}
           <div className="hidden md:block">
-            <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
-              Connect Wallet
-            </button>
+            <ConnectButton />
           </div>
 
           {/* Mobile menu button */}
@@ -77,9 +75,7 @@ export default function Navigation() {
                 </Link>
               ))}
               <div className="px-3 py-2">
-                <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
-              Connect Wallet
-            </button>
+                <ConnectButton />
               </div>
             </div>
           </motion.div>

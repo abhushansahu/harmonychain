@@ -1,213 +1,270 @@
-import { Router, Request, Response } from 'express';
-import { getPool } from '../config/database';
-import { ipfsManager } from '../config/ipfs';
-import { logger } from '../utils/logger';
+import { Router } from 'express'
+import { BlockchainService } from '../services/blockchainService'
+import { ApiResponse } from '../types'
+import { uploadFiles, handleUploadError } from '../middleware/upload'
+import { uploadToIPFS, getIPFSUrl } from '../config/ipfs'
+import { authenticateToken } from '../middleware/auth'
+import OrbitDBService from '../services/orbitdbService'
+import OrbitDBQuery from '../utils/orbitdbQuery'
 
-const router = Router();
+interface Track {
+  id: string
+  title: string
+  artist: string
+  artistId: string
+  duration: number
+  genre: string
+  price: number
+  coverArt: string
+  audioFile: string
+  ipfsHash: string
+  createdAt: string
+  updatedAt: string
+}
 
-// GET /api/tracks - Get all tracks with pagination
-router.get('/', async (req: Request, res: Response) => {
+const router = Router()
+
+// Get all tracks - Web3 only
+router.get('/', async (req, res) => {
   try {
-    const { page = 1, limit = 20, genre, search } = req.query;
-    const offset = (Number(page) - 1) * Number(limit);
-
-    const pool = getPool();
-    let query = `
-      SELECT t.*, a.name as artist_name, a.profile_image_hash
-      FROM tracks t
-      JOIN artists a ON t.artist_address = a.wallet_address
-      WHERE t.is_active = true
-    `;
-    const params: any[] = [];
-
-    if (genre) {
-      query += ' AND t.genre = $' + (params.length + 1);
-      params.push(genre);
-    }
-
+    const { page = 1, limit = 10, search, genre, artistId } = req.query
+    
+    let tracks
     if (search) {
-      query += ' AND (t.title ILIKE $' + (params.length + 1) + ' OR a.name ILIKE $' + (params.length + 1) + ')';
-      params.push(`%${search}%`);
+      tracks = await OrbitDBQuery.searchTracks(search as string, { genre, artistId })
+    } else {
+      tracks = await OrbitDBService.getAllTracks()
     }
-
-    query += ' ORDER BY t.created_at DESC LIMIT $' + (params.length + 1) + ' OFFSET $' + (params.length + 2);
-    params.push(Number(limit), offset);
-
-    const result = await pool.query(query, params);
-
-    // Get total count
-    let countQuery = 'SELECT COUNT(*) FROM tracks t JOIN artists a ON t.artist_address = a.wallet_address WHERE t.is_active = true';
-    const countParams: any[] = [];
-    let paramIndex = 1;
-
-    if (genre) {
-      countQuery += ' AND t.genre = $' + paramIndex;
-      countParams.push(genre);
-      paramIndex++;
-    }
-
-    if (search) {
-      countQuery += ' AND (t.title ILIKE $' + paramIndex + ' OR a.name ILIKE $' + paramIndex + ')';
-      countParams.push(`%${search}%`);
-    }
-
-    const countResult = await pool.query(countQuery, countParams);
-    const total = parseInt(countResult.rows[0].count);
-
-    res.json({
+    
+    // Paginate results
+    const paginatedTracks = OrbitDBQuery.paginate(tracks as any[], Number(page), Number(limit))
+    
+    const response: ApiResponse = {
       success: true,
-      data: {
-        tracks: result.rows,
-        pagination: {
-          page: Number(page),
-          limit: Number(limit),
-          total,
-          pages: Math.ceil(total / Number(limit)),
-        },
-      },
-    });
-  } catch (error) {
-    logger.error('Error fetching tracks:', error);
-    res.status(500).json({
-      success: false,
-      error: { message: 'Failed to fetch tracks' },
-    });
-  }
-});
-
-// GET /api/tracks/:id - Get specific track
-router.get('/:id', async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const pool = getPool();
-
-    const result = await pool.query(`
-      SELECT t.*, a.name as artist_name, a.bio as artist_bio, a.profile_image_hash
-      FROM tracks t
-      JOIN artists a ON t.artist_address = a.wallet_address
-      WHERE t.id = $1 AND t.is_active = true
-    `, [id]);
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        error: { message: 'Track not found' },
-      });
+      data: paginatedTracks.data,
+      message: 'Tracks retrieved successfully',
+      pagination: paginatedTracks.pagination
     }
+    
+    res.json(response)
+  } catch (error) {
+    const response: ApiResponse = {
+      success: false,
+      error: 'Failed to fetch tracks',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }
+    res.status(500).json(response)
+  }
+})
 
-    const track = result.rows[0];
-
-    // Get track metadata from IPFS if available
-    if (track.metadata_hash) {
-      try {
-        const metadata = await ipfsManager.getJSON(track.metadata_hash);
-        track.metadata = metadata;
-      } catch (error) {
-        logger.warn(`Failed to fetch metadata for track ${id}:`, error);
+// Get track by ID - Web3 only
+router.get('/:id', async (req, res) => {
+  try {
+    const { id } = req.params
+    const track = await BlockchainService.getTrack(id)
+    
+    if (!track) {
+      const response: ApiResponse = {
+        success: false,
+        error: 'Track not found',
+        message: 'The requested track was not found on blockchain'
       }
+      return res.status(404).json(response)
     }
-
-    res.json({
+    
+    const response: ApiResponse = {
       success: true,
-      data: { track },
-    });
+      data: track,
+      message: 'Track retrieved successfully from blockchain'
+    }
+    
+    res.json(response)
   } catch (error) {
-    logger.error('Error fetching track:', error);
-    res.status(500).json({
+    const response: ApiResponse = {
       success: false,
-      error: { message: 'Failed to fetch track' },
-    });
+      error: 'Failed to fetch track from blockchain',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }
+    res.status(500).json(response)
   }
-});
+})
 
-// POST /api/tracks - Upload new track
-router.post('/', async (req: Request, res: Response) => {
+// Create track - Web3 with IPFS
+router.post('/', authenticateToken, uploadFiles, handleUploadError, async (req: any, res: any) => {
   try {
-    const {
-      ipfsHash,
+    const { title, duration, genre, price } = req.body
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] }
+    
+    if (!title || !duration || !genre) {
+      const response: ApiResponse = {
+        success: false,
+        error: 'Missing required fields',
+        message: 'Title, duration, and genre are required'
+      }
+      return res.status(400).json(response)
+    }
+    
+    if (!files.audioFile || files.audioFile.length === 0) {
+      const response: ApiResponse = {
+        success: false,
+        error: 'Audio file required',
+        message: 'Audio file is required'
+      }
+      return res.status(400).json(response)
+    }
+    
+    const audioFile = files.audioFile[0]
+    const coverArtFile = files.coverArt?.[0]
+    
+    // Upload audio file to IPFS
+    const audioResult = await uploadToIPFS(audioFile.buffer, audioFile.originalname, {
+      name: `${title} - Audio`,
+      keyvalues: {
+        type: 'audio',
+        title: title,
+        artist: req.user?.address || 'Unknown'
+      }
+    })
+    const audioUrl = getIPFSUrl(audioResult.path)
+    
+    // Upload cover art to IPFS if provided
+    let coverArtUrl = ''
+    if (coverArtFile) {
+      const coverArtResult = await uploadToIPFS(coverArtFile.buffer, coverArtFile.originalname, {
+        name: `${title} - Cover Art`,
+        keyvalues: {
+          type: 'image',
+          title: title,
+          artist: req.user?.address || 'Unknown'
+        }
+      })
+      coverArtUrl = getIPFSUrl(coverArtResult.path)
+    }
+    
+    // Register track on blockchain with IPFS hashes
+    const trackId = await BlockchainService.registerTrack({
       title,
+      duration: parseInt(duration),
       genre,
-      artistAddress,
-      metadataHash,
-    } = req.body;
-
-    if (!ipfsHash || !title || !artistAddress) {
-      return res.status(400).json({
-        success: false,
-        error: { message: 'Missing required fields' },
-      });
+      coverArt: coverArtUrl,
+      audioFile: audioUrl,
+      ipfsHash: audioResult.path,
+      price: parseFloat(price) || 0
+    })
+    
+    // Also save to SimpleDB for fast queries
+    const trackData = {
+      title,
+      artist: req.user?.address || 'Unknown',
+      artistId: req.user?.address || 'Unknown',
+      duration: parseInt(duration),
+      genre,
+      price: parseFloat(price) || 0,
+      coverArt: coverArtUrl,
+      audioFile: audioUrl,
+      ipfsHash: audioResult.path,
+      isStreamable: true,
+      playCount: 0
     }
-
-    const pool = getPool();
-
-    // Verify artist exists
-    const artistResult = await pool.query(
-      'SELECT id FROM artists WHERE wallet_address = $1',
-      [artistAddress]
-    );
-
-    if (artistResult.rows.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: { message: 'Artist not found' },
-      });
-    }
-
-    // Insert track
-    const result = await pool.query(`
-      INSERT INTO tracks (ipfs_hash, title, genre, artist_address, metadata_hash)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING *
-    `, [ipfsHash, title, genre, artistAddress, metadataHash]);
-
-    // Ensure content is pinned in IPFS
-    await ipfsManager.ensureAvailability(ipfsHash);
-
-    res.status(201).json({
+    
+    const savedTrack = await OrbitDBService.createTrack(trackData)
+    
+    const response: ApiResponse = {
       success: true,
-      data: { track: result.rows[0] },
-    });
+      data: { 
+        id: trackId,
+        audioUrl,
+        coverArtUrl,
+        ipfsHash: audioResult.path,
+        dbId: savedTrack.id
+      },
+      message: 'Track registered successfully on blockchain and database with IPFS storage'
+    }
+    
+    res.status(201).json(response)
   } catch (error) {
-    logger.error('Error creating track:', error);
-    res.status(500).json({
+    console.error('Track creation error:', error)
+    const response: ApiResponse = {
       success: false,
-      error: { message: 'Failed to create track' },
-    });
+      error: 'Failed to create track',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }
+    res.status(500).json(response)
   }
-});
+})
 
-// GET /api/tracks/:id/stream - Get track streaming URL
-router.get('/:id/stream', async (req: Request, res: Response) => {
+// Update track - Web3 only
+router.put('/:id', async (req, res) => {
   try {
-    const { id } = req.params;
-    const pool = getPool();
-
-    const result = await pool.query(
-      'SELECT ipfs_hash FROM tracks WHERE id = $1 AND is_active = true',
-      [id]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        success: false,
-        error: { message: 'Track not found' },
-      });
-    }
-
-    const ipfsHash = result.rows[0].ipfs_hash;
-    const streamingUrl = ipfsManager.getOptimalGateway(ipfsHash);
-
-    res.json({
+    const { id } = req.params
+    const updateData = req.body
+    
+    // Update track metadata on blockchain
+    const updatedTrack = await BlockchainService.updateTrack(id, updateData)
+    
+    const response: ApiResponse = {
       success: true,
-      data: { streamingUrl },
-    });
+      data: updatedTrack,
+      message: 'Track updated successfully on blockchain'
+    }
+    
+    res.json(response)
   } catch (error) {
-    logger.error('Error getting streaming URL:', error);
-    res.status(500).json({
+    const response: ApiResponse = {
       success: false,
-      error: { message: 'Failed to get streaming URL' },
-    });
+      error: 'Failed to update track on blockchain',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }
+    res.status(500).json(response)
   }
-});
+})
 
-export default router;
+// Play track - increment play count
+router.post('/:id/play', async (req, res) => {
+  try {
+    const { id } = req.params
+    
+    // Increment play count on blockchain
+    await BlockchainService.playTrack(id)
+    
+    const response: ApiResponse = {
+      success: true,
+      message: 'Track play count incremented'
+    }
+    
+    res.json(response)
+  } catch (error) {
+    const response: ApiResponse = {
+      success: false,
+      error: 'Failed to play track',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }
+    res.status(500).json(response)
+  }
+})
+
+// Delete track - Web3 only
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params
+    
+    // Remove track from blockchain
+    await BlockchainService.deleteTrack(id)
+    
+    const response: ApiResponse = {
+      success: true,
+      message: 'Track deleted successfully from blockchain'
+    }
+    
+    res.json(response)
+  } catch (error) {
+    const response: ApiResponse = {
+      success: false,
+      error: 'Failed to delete track from blockchain',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }
+    res.status(500).json(response)
+  }
+})
+
+export default router

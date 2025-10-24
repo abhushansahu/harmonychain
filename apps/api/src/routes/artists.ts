@@ -1,23 +1,162 @@
-import { Router, Request, Response } from 'express';
-import { logger } from '../utils/logger';
+import { Router } from 'express'
+import { ApiResponse } from '../types'
+import { BlockchainService } from '../services/blockchainService'
+import { authenticateToken } from '../middleware/auth'
+import OrbitDBService from '../services/orbitdbService'
+import OrbitDBQuery from '../utils/orbitdbQuery'
 
-const router = Router();
+const router = Router()
 
-// GET /api/artists - Get all artists
-router.get('/', async (req: Request, res: Response) => {
+// Get all artists
+router.get('/', async (req, res) => {
   try {
-    // TODO: Implement artist listing logic
-    res.json({
+    const { page = 1, limit = 10, search } = req.query
+    
+    let artists
+    if (search) {
+      artists = await OrbitDBQuery.searchArtists(search as string)
+    } else {
+      artists = await OrbitDBService.getAllArtists()
+    }
+    
+    // Paginate results
+    const paginatedArtists = OrbitDBQuery.paginate(artists as any[], Number(page), Number(limit))
+    
+    const response: ApiResponse = {
       success: true,
-      data: { artists: [] },
-    });
+      data: paginatedArtists.data,
+      message: 'Artists retrieved successfully',
+      pagination: paginatedArtists.pagination
+    }
+    
+    res.json(response)
   } catch (error) {
-    logger.error('Error fetching artists:', error);
-    res.status(500).json({
+    console.error('Error fetching artists:', error)
+    const response: ApiResponse = {
       success: false,
-      error: { message: 'Failed to fetch artists' },
-    });
+      error: 'Failed to fetch artists',
+      message: 'An error occurred while fetching artists'
+    }
+    res.status(500).json(response)
   }
-});
+})
 
-export default router;
+// Get artist by ID
+router.get('/:id', async (req, res) => {
+  try {
+    const { id } = req.params
+    const artist = await OrbitDBService.getArtist(id)
+    
+    if (!artist) {
+      const response: ApiResponse = {
+        success: false,
+        error: 'Artist not found',
+        message: 'The requested artist was not found'
+      }
+      return res.status(404).json(response)
+    }
+    
+    const response: ApiResponse = {
+      success: true,
+      data: artist,
+      message: 'Artist retrieved successfully'
+    }
+    
+    res.json(response)
+  } catch (error) {
+    console.error('Error fetching artist:', error)
+    const response: ApiResponse = {
+      success: false,
+      error: 'Failed to fetch artist',
+      message: 'An error occurred while fetching the artist'
+    }
+    res.status(500).json(response)
+  }
+})
+
+// Get artist's tracks
+router.get('/:id/tracks', async (req, res) => {
+  try {
+    const { id } = req.params
+    const artist = await BlockchainService.getArtist(id)
+    
+    if (!artist) {
+      const response: ApiResponse = {
+        success: false,
+        error: 'Artist not found',
+        message: 'The requested artist was not found'
+      }
+      return res.status(404).json(response)
+    }
+    
+    const trackIds = await BlockchainService.getArtistTracks(artist.walletAddress)
+    const tracks = []
+    
+    for (const trackId of trackIds) {
+      try {
+        const track = await BlockchainService.getTrack(trackId)
+        if (track) {
+          tracks.push(track)
+        }
+      } catch (error) {
+        console.warn(`Failed to fetch track ${trackId}:`, error)
+      }
+    }
+    
+    const response: ApiResponse = {
+      success: true,
+      data: tracks,
+      message: 'Artist tracks retrieved successfully from blockchain'
+    }
+    
+    res.json(response)
+  } catch (error) {
+    console.error('Error fetching artist tracks:', error)
+    const response: ApiResponse = {
+      success: false,
+      error: 'Failed to fetch artist tracks',
+      message: 'An error occurred while fetching artist tracks'
+    }
+    res.status(500).json(response)
+  }
+})
+
+// Register new artist
+router.post('/', authenticateToken, async (req, res) => {
+  try {
+    const { name, description, avatar } = req.body
+    
+    if (!name || !description) {
+      const response: ApiResponse = {
+        success: false,
+        error: 'Missing required fields',
+        message: 'Name and description are required'
+      }
+      return res.status(400).json(response)
+    }
+    
+    const artistId = await BlockchainService.registerArtist({
+      name,
+      description,
+      avatar: avatar || ''
+    })
+    
+    const response: ApiResponse = {
+      success: true,
+      data: { id: artistId },
+      message: 'Artist registered successfully on blockchain'
+    }
+    
+    res.status(201).json(response)
+  } catch (error) {
+    console.error('Error registering artist:', error)
+    const response: ApiResponse = {
+      success: false,
+      error: 'Failed to register artist',
+      message: 'An error occurred while registering the artist'
+    }
+    res.status(500).json(response)
+  }
+})
+
+export default router

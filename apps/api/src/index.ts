@@ -1,110 +1,228 @@
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import morgan from 'morgan';
-import compression from 'compression';
-import dotenv from 'dotenv';
-import { createServer } from 'http';
+import express from 'express'
+import cors from 'cors'
+import helmet from 'helmet'
+import morgan from 'morgan'
+import compression from 'compression'
+import dotenv from 'dotenv'
+import swaggerJsdoc from 'swagger-jsdoc'
+import swaggerUi from 'swagger-ui-express'
 
-import { errorHandler } from './middleware/errorHandler';
-import { rateLimiter } from './middleware/rateLimiter';
-import { logger } from './utils/logger';
-import { connectDatabase } from './config/database';
-import { connectRedis } from './config/redis';
-import { connectIPFS } from './config/ipfs';
+// Import routes
+import tracksRouter from './routes/tracks'
+import artistsRouter from './routes/artists'
+import nftsRouter from './routes/nfts'
+import playlistsRouter from './routes/playlists'
+import authRouter from './routes/auth'
+import governanceRouter from './routes/governance'
+import licensesRouter from './routes/licenses'
 
-// Routes
-import authRoutes from './routes/auth';
-import trackRoutes from './routes/tracks';
-import artistRoutes from './routes/artists';
-import playlistRoutes from './routes/playlists';
-import licenseRoutes from './routes/licenses';
-import nftRoutes from './routes/nfts';
-import governanceRoutes from './routes/governance';
+// Import middleware
+import { errorHandler } from './middleware/errorHandler'
+import { rateLimiter } from './middleware/rateLimiter'
 
-dotenv.config();
+// Import blockchain
+import { initBlockchain } from './config/blockchain'
 
-const app = express();
-const server = createServer(app);
-const PORT = process.env.PORT || 3001;
+// Import SimpleDB
+import SimpleDB from './config/simpleDB'
+import { seedDatabase } from './seedData'
+
+// Load environment variables
+dotenv.config()
+
+const app = express()
+const PORT = process.env.PORT || 3001
+
+// Swagger configuration
+const swaggerOptions = {
+  definition: {
+    openapi: '3.0.0',
+    info: {
+      title: 'HarmonyChain API',
+      version: '1.0.0',
+      description: 'Decentralized music platform API built on Harmony Network',
+    },
+    servers: [
+      {
+        url: `http://localhost:${PORT}`,
+        description: 'Development server',
+      },
+    ],
+  },
+  apis: ['./src/routes/*.ts'],
+}
+
+const swaggerSpec = swaggerJsdoc(swaggerOptions)
 
 // Middleware
-app.use(helmet());
+app.use(helmet())
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true,
-}));
-app.use(compression());
-app.use(morgan('combined', { stream: { write: (message) => logger.info(message.trim()) } }));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-app.use(rateLimiter);
+}))
+app.use(compression())
+app.use(morgan('combined'))
+app.use(express.json({ limit: '10mb' }))
+app.use(express.urlencoded({ extended: true, limit: '10mb' }))
+app.use(rateLimiter())
 
-// Health check
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-  });
-});
+// Swagger documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 
-// API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/tracks', trackRoutes);
-app.use('/api/artists', artistRoutes);
-app.use('/api/playlists', playlistRoutes);
-app.use('/api/licenses', licenseRoutes);
-app.use('/api/nfts', nftRoutes);
-app.use('/api/governance', governanceRoutes);
+// Health check endpoint
+app.get('/health', async (req, res) => {
+  try {
+    const health = {
+      status: 'OK',
+      timestamp: new Date().toISOString(),
+      version: '1.0.0',
+      uptime: process.uptime(),
+      services: {
+        database: 'OK',
+        ipfs: 'Unknown',
+        blockchain: 'Unknown'
+      }
+    }
+
+    // Check IPFS health
+    try {
+      const { checkIPFSHealth } = await import('./config/ipfs')
+      const ipfsHealth = await checkIPFSHealth()
+      health.services.ipfs = ipfsHealth.mock ? 'Mock Mode' : 
+        (ipfsHealth.pinata ? 'Pinata Connected' : 'Local IPFS')
+    } catch (error) {
+      health.services.ipfs = 'Error'
+    }
+
+    // Check blockchain health
+    try {
+      const { getBlockchainHealth } = await import('./config/blockchain')
+      const blockchainHealth = await getBlockchainHealth()
+      health.services.blockchain = blockchainHealth.connected ? 
+        `Connected to ${blockchainHealth.network}` : 'Disconnected'
+    } catch (error) {
+      health.services.blockchain = 'Error'
+    }
+
+    res.json(health)
+  } catch (error) {
+    res.status(500).json({
+      status: 'ERROR',
+      timestamp: new Date().toISOString(),
+      error: error instanceof Error ? error.message : 'Unknown error'
+    })
+  }
+})
+
+// Debug endpoint for development
+app.get('/debug', (req, res) => {
+  try {
+    const debug = {
+      environment: process.env.NODE_ENV || 'development',
+      nodeVersion: process.version,
+      platform: process.platform,
+      memory: process.memoryUsage(),
+      database: {
+        type: 'SimpleDB (JSON files)',
+        location: './orbitdb/',
+        stats: SimpleDB.getStats()
+      },
+      services: {
+        ipfs: {
+          mockMode: process.env.IPFS_MOCK_MODE === 'true',
+          configured: !!(process.env.PINATA_API_KEY && process.env.PINATA_SECRET_KEY)
+        },
+        blockchain: {
+          mockMode: process.env.BLOCKCHAIN_MOCK_MODE === 'true',
+          network: process.env.NETWORK || 'localhost'
+        }
+      }
+    }
+
+    res.json(debug)
+  } catch (error) {
+    res.status(500).json({
+      error: 'Debug information unavailable',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    })
+  }
+})
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'HarmonyChain API Server',
+    version: '1.0.0',
+    endpoints: {
+      health: '/health',
+      docs: '/api-docs',
+      tracks: '/api/tracks',
+      artists: '/api/artists',
+      nfts: '/api/nfts',
+      playlists: '/api/playlists',
+      auth: '/api/auth',
+      governance: '/api/governance',
+      licenses: '/api/licenses'
+    }
+  })
+})
+
+// API routes
+app.use('/api/tracks', tracksRouter)
+app.use('/api/artists', artistsRouter)
+app.use('/api/nfts', nftsRouter)
+app.use('/api/playlists', playlistsRouter)
+app.use('/api/auth', authRouter)
+app.use('/api/governance', governanceRouter)
+app.use('/api/licenses', licensesRouter)
 
 // Error handling
-app.use(errorHandler);
+app.use(errorHandler)
 
 // 404 handler
 app.use('*', (req, res) => {
-  res.status(404).json({
-    error: 'Route not found',
-    message: `Cannot ${req.method} ${req.originalUrl}`,
-  });
-});
+  res.status(404).json({ 
+    error: 'Not Found',
+    message: 'The requested resource was not found'
+  })
+})
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM received, shutting down gracefully');
-  server.close(() => {
-    logger.info('Process terminated');
-    process.exit(0);
-  });
-});
-
-process.on('SIGINT', () => {
-  logger.info('SIGINT received, shutting down gracefully');
-  server.close(() => {
-    logger.info('Process terminated');
-    process.exit(0);
-  });
-});
-
-// Start server
-async function startServer() {
+// Initialize services
+const initializeServices = async () => {
   try {
-    // Connect to services
-    await connectDatabase();
-    await connectRedis();
-    await connectIPFS();
-
-    server.listen(PORT, () => {
-      logger.info(`🚀 HarmonyChain API server running on port ${PORT}`);
-      logger.info(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-      logger.info(`🔗 Health check: http://localhost:${PORT}/health`);
-    });
+    // SimpleDB is initialized automatically
+    console.log('✅ SimpleDB initialized successfully')
+    
+    // Seed database with sample data (disabled in production)
+    // seedDatabase()
+    
+    await initBlockchain()
+    console.log('✅ All services initialized successfully')
   } catch (error) {
-    logger.error('Failed to start server:', error);
-    process.exit(1);
+    console.error('❌ Failed to initialize services:', error)
+    process.exit(1)
   }
 }
 
-startServer();
+// Graceful shutdown
+const gracefulShutdown = async () => {
+  console.log('🔄 Shutting down gracefully...')
+  process.exit(0)
+}
 
-export default app;
+process.on('SIGTERM', gracefulShutdown)
+process.on('SIGINT', gracefulShutdown)
+
+// Start server
+const startServer = async () => {
+  await initializeServices()
+  
+  app.listen(PORT, () => {
+    console.log(`🚀 HarmonyChain API server running on port ${PORT}`)
+    console.log(`📚 API Documentation available at http://localhost:${PORT}/api-docs`)
+  })
+}
+
+startServer().catch(console.error)
+
+export default app

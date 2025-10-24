@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter, Playfair_Display } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/components/providers/Providers'
+import { Web3Provider } from '@/components/providers/Web3Provider'
 
 const inter = Inter({ subsets: ['latin'] })
 const playfair = Playfair_Display({
@@ -36,9 +37,11 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <body className={`${inter.className} ${playfair.variable} antialiased`}>
-        <Providers>
-          {children}
-        </Providers>
+        <Web3Provider>
+          <Providers>
+            {children}
+          </Providers>
+        </Web3Provider>
       </body>
     </html>
   )

@@ -5,232 +5,198 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
-/**
- * @title MusicRegistry
- * @dev Registry for music tracks with IPFS integration
- * @author HarmonyChain Team
- */
 contract MusicRegistry is Ownable, ReentrancyGuard {
     using Counters for Counters.Counter;
-
+    
     Counters.Counter private _trackIds;
-
+    Counters.Counter private _artistIds;
+    
     struct Track {
         uint256 id;
-        string ipfsHash;
-        address artist;
         string title;
+        string artist;
+        uint256 artistId;
+        uint256 duration;
         string genre;
-        uint256 timestamp;
-        bool isActive;
-        string metadataHash; // IPFS hash for additional metadata
+        string coverArt;
+        string audioFile;
+        string ipfsHash;
+        uint256 price;
+        bool isStreamable;
+        uint256 playCount;
+        address owner;
+        uint256 createdAt;
     }
-
+    
     struct Artist {
-        address wallet;
+        uint256 id;
         string name;
-        string bio;
-        string profileImageHash; // IPFS hash
-        bool isVerified;
+        string description;
+        string avatar;
+        address walletAddress;
         uint256 totalTracks;
+        uint256 totalEarnings;
+        bool isVerified;
+        uint256 createdAt;
     }
-
+    
     mapping(uint256 => Track) public tracks;
-    mapping(address => uint256[]) public artistTracks;
-    mapping(address => Artist) public artists;
-    mapping(string => bool) public usedIpfsHashes;
-
+    mapping(uint256 => Artist) public artists;
+    mapping(address => uint256) public artistByAddress;
+    mapping(string => bool) public ipfsHashes;
+    mapping(address => uint256[]) public tracksByArtist;
+    
     event TrackRegistered(
         uint256 indexed trackId,
-        address indexed artist,
         string title,
+        string artist,
+        address indexed owner,
         string ipfsHash
     );
     
     event ArtistRegistered(
-        address indexed artist,
-        string name
+        uint256 indexed artistId,
+        string name,
+        address indexed walletAddress
     );
     
-    event TrackUpdated(
-        uint256 indexed trackId,
-        string newTitle
-    );
-
+    event TrackPlayed(uint256 indexed trackId, address indexed listener);
+    event TrackPurchased(uint256 indexed trackId, address indexed buyer, uint256 price);
+    
     modifier onlyArtist() {
-        require(artists[msg.sender].wallet != address(0), "Artist not registered");
+        require(artistByAddress[msg.sender] > 0, "Not a registered artist");
         _;
     }
-
+    
     modifier trackExists(uint256 _trackId) {
-        require(tracks[_trackId].artist != address(0), "Track does not exist");
+        require(_trackId > 0 && _trackId <= _trackIds.current(), "Track does not exist");
         _;
     }
-
-    /**
-     * @dev Register a new artist
-     * @param _name Artist name
-     * @param _bio Artist biography
-     * @param _profileImageHash IPFS hash of profile image
-     */
+    
     function registerArtist(
         string memory _name,
-        string memory _bio,
-        string memory _profileImageHash
+        string memory _description,
+        string memory _avatar
     ) external {
-        require(artists[msg.sender].wallet == address(0), "Artist already registered");
-        require(bytes(_name).length > 0, "Name cannot be empty");
-
-        artists[msg.sender] = Artist({
-            wallet: msg.sender,
+        require(artistByAddress[msg.sender] == 0, "Artist already registered");
+        
+        _artistIds.increment();
+        uint256 artistId = _artistIds.current();
+        
+        artists[artistId] = Artist({
+            id: artistId,
             name: _name,
-            bio: _bio,
-            profileImageHash: _profileImageHash,
+            description: _description,
+            avatar: _avatar,
+            walletAddress: msg.sender,
+            totalTracks: 0,
+            totalEarnings: 0,
             isVerified: false,
-            totalTracks: 0
+            createdAt: block.timestamp
         });
-
-        emit ArtistRegistered(msg.sender, _name);
+        
+        artistByAddress[msg.sender] = artistId;
+        
+        emit ArtistRegistered(artistId, _name, msg.sender);
     }
-
-    /**
-     * @dev Register a new music track
-     * @param _ipfsHash IPFS hash of the audio file
-     * @param _title Track title
-     * @param _genre Track genre
-     * @param _metadataHash IPFS hash of track metadata
-     */
+    
     function registerTrack(
-        string memory _ipfsHash,
         string memory _title,
+        uint256 _duration,
         string memory _genre,
-        string memory _metadataHash
-    ) external onlyArtist nonReentrant returns (uint256) {
-        require(bytes(_ipfsHash).length > 0, "IPFS hash cannot be empty");
+        string memory _coverArt,
+        string memory _audioFile,
+        string memory _ipfsHash,
+        uint256 _price
+    ) external onlyArtist {
         require(bytes(_title).length > 0, "Title cannot be empty");
-        require(!usedIpfsHashes[_ipfsHash], "IPFS hash already used");
-
+        require(_duration > 0, "Duration must be greater than 0");
+        require(!ipfsHashes[_ipfsHash], "IPFS hash already exists");
+        
         _trackIds.increment();
         uint256 trackId = _trackIds.current();
-
+        uint256 artistId = artistByAddress[msg.sender];
+        
         tracks[trackId] = Track({
             id: trackId,
-            ipfsHash: _ipfsHash,
-            artist: msg.sender,
             title: _title,
+            artist: artists[artistId].name,
+            artistId: artistId,
+            duration: _duration,
             genre: _genre,
-            timestamp: block.timestamp,
-            isActive: true,
-            metadataHash: _metadataHash
+            coverArt: _coverArt,
+            audioFile: _audioFile,
+            ipfsHash: _ipfsHash,
+            price: _price,
+            isStreamable: true,
+            playCount: 0,
+            owner: msg.sender,
+            createdAt: block.timestamp
         });
-
-        artistTracks[msg.sender].push(trackId);
-        artists[msg.sender].totalTracks++;
-        usedIpfsHashes[_ipfsHash] = true;
-
-        emit TrackRegistered(trackId, msg.sender, _title, _ipfsHash);
-
-        return trackId;
+        
+        ipfsHashes[_ipfsHash] = true;
+        tracksByArtist[msg.sender].push(trackId);
+        artists[artistId].totalTracks++;
+        
+        emit TrackRegistered(trackId, _title, artists[artistId].name, msg.sender, _ipfsHash);
     }
-
-    /**
-     * @dev Get track information
-     * @param _trackId Track ID
-     * @return Track struct
-     */
+    
+    function playTrack(uint256 _trackId) external trackExists(_trackId) {
+        require(tracks[_trackId].isStreamable, "Track is not streamable");
+        
+        tracks[_trackId].playCount++;
+        emit TrackPlayed(_trackId, msg.sender);
+    }
+    
+    function purchaseTrack(uint256 _trackId) external payable trackExists(_trackId) {
+        require(tracks[_trackId].price > 0, "Track is not for sale");
+        require(msg.value >= tracks[_trackId].price, "Insufficient payment");
+        
+        address artistAddress = tracks[_trackId].owner;
+        uint256 artistId = artistByAddress[artistAddress];
+        
+        // Transfer payment to artist
+        (bool success, ) = artistAddress.call{value: msg.value}("");
+        require(success, "Payment transfer failed");
+        
+        artists[artistId].totalEarnings += msg.value;
+        
+        emit TrackPurchased(_trackId, msg.sender, msg.value);
+    }
+    
+    function updateTrackPrice(uint256 _trackId, uint256 _newPrice) external trackExists(_trackId) {
+        require(tracks[_trackId].owner == msg.sender, "Not the track owner");
+        tracks[_trackId].price = _newPrice;
+    }
+    
+    function toggleStreamable(uint256 _trackId) external trackExists(_trackId) {
+        require(tracks[_trackId].owner == msg.sender, "Not the track owner");
+        tracks[_trackId].isStreamable = !tracks[_trackId].isStreamable;
+    }
+    
     function getTrack(uint256 _trackId) external view trackExists(_trackId) returns (Track memory) {
         return tracks[_trackId];
     }
-
-    /**
-     * @dev Get artist information
-     * @param _artist Artist wallet address
-     * @return Artist struct
-     */
-    function getArtist(address _artist) external view returns (Artist memory) {
-        require(artists[_artist].wallet != address(0), "Artist not found");
-        return artists[_artist];
+    
+    function getArtist(uint256 _artistId) external view returns (Artist memory) {
+        require(_artistId > 0 && _artistId <= _artistIds.current(), "Artist does not exist");
+        return artists[_artistId];
     }
-
-    /**
-     * @dev Get all tracks by an artist
-     * @param _artist Artist wallet address
-     * @return Array of track IDs
-     */
-    function getArtistTracks(address _artist) external view returns (uint256[] memory) {
-        return artistTracks[_artist];
+    
+    function getArtistTracks(address _artistAddress) external view returns (uint256[] memory) {
+        return tracksByArtist[_artistAddress];
     }
-
-    /**
-     * @dev Update track information (only by artist)
-     * @param _trackId Track ID
-     * @param _newTitle New title
-     * @param _newGenre New genre
-     */
-    function updateTrack(
-        uint256 _trackId,
-        string memory _newTitle,
-        string memory _newGenre
-    ) external trackExists(_trackId) {
-        require(tracks[_trackId].artist == msg.sender, "Not the track artist");
-        require(bytes(_newTitle).length > 0, "Title cannot be empty");
-
-        tracks[_trackId].title = _newTitle;
-        tracks[_trackId].genre = _newGenre;
-
-        emit TrackUpdated(_trackId, _newTitle);
-    }
-
-    /**
-     * @dev Deactivate a track
-     * @param _trackId Track ID
-     */
-    function deactivateTrack(uint256 _trackId) external trackExists(_trackId) {
-        require(tracks[_trackId].artist == msg.sender, "Not the track artist");
-        tracks[_trackId].isActive = false;
-    }
-
-    /**
-     * @dev Verify an artist (only owner)
-     * @param _artist Artist wallet address
-     */
-    function verifyArtist(address _artist) external onlyOwner {
-        require(artists[_artist].wallet != address(0), "Artist not found");
-        artists[_artist].isVerified = true;
-    }
-
-    /**
-     * @dev Get total number of tracks
-     * @return Total track count
-     */
+    
     function getTotalTracks() external view returns (uint256) {
         return _trackIds.current();
     }
-
-    /**
-     * @dev Get tracks by genre
-     * @param _genre Genre to filter by
-     * @param _limit Maximum number of tracks to return
-     * @return Array of track IDs
-     */
-    function getTracksByGenre(string memory _genre, uint256 _limit) external view returns (uint256[] memory) {
-        uint256[] memory genreTracks = new uint256[](_limit);
-        uint256 count = 0;
-        
-        for (uint256 i = 1; i <= _trackIds.current() && count < _limit; i++) {
-            if (tracks[i].isActive && 
-                keccak256(bytes(tracks[i].genre)) == keccak256(bytes(_genre))) {
-                genreTracks[count] = i;
-                count++;
-            }
-        }
-        
-        // Resize array to actual count
-        uint256[] memory result = new uint256[](count);
-        for (uint256 i = 0; i < count; i++) {
-            result[i] = genreTracks[i];
-        }
-        
-        return result;
+    
+    function getTotalArtists() external view returns (uint256) {
+        return _artistIds.current();
+    }
+    
+    function verifyArtist(uint256 _artistId) external onlyOwner {
+        require(_artistId > 0 && _artistId <= _artistIds.current(), "Artist does not exist");
+        artists[_artistId].isVerified = true;
     }
 }

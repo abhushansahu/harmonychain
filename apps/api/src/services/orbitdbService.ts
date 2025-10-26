@@ -154,11 +154,11 @@ export class OrbitDBService {
   static async updateAnalytics(type: string, data: any) {
     const analytics = SimpleDB.get('analytics', type) || {}
     const updatedAnalytics = {
-      ...analytics,
-      ...data,
+      ...(analytics as object),
+      ...(data as object),
       updatedAt: new Date().toISOString()
     }
-    SimpleDB.update('analytics', type, updatedAnalytics)
+    SimpleDB.update('analytics', type, updatedAnalytics as any)
     return updatedAnalytics
   }
 

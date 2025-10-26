@@ -1,7 +1,7 @@
 module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'node',
-  roots: ['<rootDir>/src'],
+  roots: ['<rootDir>'],
   testMatch: ['**/__tests__/**/*.test.ts'],
   collectCoverageFrom: [
     'src/**/*.ts',
@@ -10,4 +10,10 @@ module.exports = {
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
+  transformIgnorePatterns: [
+    'node_modules/(?!(uuid)/)'
+  ],
+  moduleNameMapper: {
+    '^uuid$': require.resolve('uuid')
+  }
 }

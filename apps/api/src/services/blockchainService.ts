@@ -100,6 +100,7 @@ export class BlockchainService {
   }): Promise<string> {
     try {
       const contract = getMusicRegistryContract()
+      console.log('Registering track with data:', trackData)
       const tx = await contract.registerTrack(
         trackData.title,
         trackData.duration,
@@ -107,7 +108,10 @@ export class BlockchainService {
         trackData.coverArt,
         trackData.audioFile,
         trackData.ipfsHash,
-        trackData.price
+        trackData.price,
+        { 
+          gasLimit: 1000000
+        }
       )
       
       const receipt = await tx.wait()
@@ -197,13 +201,21 @@ export class BlockchainService {
     name: string
     description: string
     avatar: string
-  }): Promise<string> {
+  }, walletAddress?: string): Promise<string> {
     try {
       const contract = getMusicRegistryContract()
+      console.log('Registering artist with data:', artistData, 'for wallet:', walletAddress)
+      
+      // For now, we'll use the default wallet from the contract
+      // In a production environment, you would need to implement proper wallet management
+      // to sign transactions with the specific wallet address
       const tx = await contract.registerArtist(
         artistData.name,
         artistData.description,
-        artistData.avatar
+        artistData.avatar,
+        { 
+          gasLimit: 500000
+        }
       )
       
       const receipt = await tx.wait()

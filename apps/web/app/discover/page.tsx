@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Navigation from '@/components/layout/Navigation'
 import Footer from '@/components/layout/Footer'
 import SearchInterface from '@/components/discovery/SearchInterface'
@@ -11,12 +12,14 @@ import { apiClient } from '@/lib/api/client'
 import toast from 'react-hot-toast'
 
 export default function DiscoverPage() {
+  const router = useRouter()
   const [selectedGenres, setSelectedGenres] = useState<string[]>([])
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
     query: '',
     sortBy: 'newest'
   })
   const [tracks, setTracks] = useState<Track[]>([])
+  const [filteredTracks, setFilteredTracks] = useState<Track[]>([])
   const [artists, setArtists] = useState<Artist[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -38,13 +41,15 @@ export default function DiscoverPage() {
           const mappedTracks = tracksResponse.data.map(track => ({
             ...track,
             isStreamable: true,
-            playCount: 0,
+            playCount: track.playCount || 0,
             owner: track.artistId
           }))
           setTracks(mappedTracks)
+          setFilteredTracks(mappedTracks)
         } else {
           console.warn('Failed to fetch tracks:', tracksResponse.error)
           setTracks([])
+          setFilteredTracks([])
         }
         
         if (artistsResponse.success && artistsResponse.data) {
@@ -73,44 +78,69 @@ export default function DiscoverPage() {
     fetchData()
   }, [])
 
+  // Filter tracks based on search filters and selected genres
+  useEffect(() => {
+    let filtered = [...tracks]
+
+    // Apply search query filter
+    if (searchFilters.query) {
+      const query = searchFilters.query.toLowerCase()
+      filtered = filtered.filter(track => 
+        track.title.toLowerCase().includes(query) ||
+        track.artist.toLowerCase().includes(query) ||
+        track.genre.toLowerCase().includes(query)
+      )
+    }
+
+    // Apply genre filter
+    if (selectedGenres.length > 0) {
+      filtered = filtered.filter(track => 
+        selectedGenres.includes(track.genre)
+      )
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      switch (searchFilters.sortBy) {
+        case 'newest':
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        case 'oldest':
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        case 'popular':
+          return b.playCount - a.playCount
+        case 'price_low':
+          return a.price - b.price
+        case 'price_high':
+          return b.price - a.price
+        default:
+          return 0
+      }
+    })
+
+    setFilteredTracks(filtered)
+  }, [tracks, searchFilters, selectedGenres])
+
   const handleSearch = async (filters: SearchFilters) => {
     setSearchFilters(filters)
-    try {
-      setLoading(true)
-      const response = await apiClient.getTracks()
-      if (response.success && response.data) {
-        // Map API response to expected Track format
-        const mappedTracks = response.data.map(track => ({
-          ...track,
-          isStreamable: true,
-          playCount: 0,
-          owner: track.artistId
-        }))
-        setTracks(mappedTracks)
-      }
-    } catch (err) {
-      console.error('Search error:', err)
-      toast.error('Search failed')
-    } finally {
-      setLoading(false)
-    }
+    // Filtering is handled by useEffect above
   }
 
   const handleTrackSelect = (track: Track) => {
-    // Navigate to track detail or start playing
-    console.log('Selected track:', track)
+    // Navigate to player page
+    router.push(`/player?trackId=${track.id}`)
   }
 
   const handleArtistSelect = (artist: Artist) => {
     // Navigate to artist profile
-    console.log('Selected artist:', artist)
+    router.push(`/artists/${artist.id}`)
   }
 
   const handlePlayTrack = async (track: Track) => {
     try {
       // Call playTrack API to increment play count
       await apiClient.customRequest(`/api/tracks/${track.id}/play`, { method: 'POST' })
-      console.log('Playing track:', track)
+      // Navigate to player page
+      router.push(`/player?trackId=${track.id}`)
     } catch (err) {
       console.error('Play track error:', err)
       toast.error('Failed to play track')
@@ -181,7 +211,7 @@ export default function DiscoverPage() {
                 </div>
               ) : (
                 <TrendingTracks
-                  tracks={tracks}
+                  tracks={filteredTracks}
                   onTrackSelect={handleTrackSelect}
                   onPlayTrack={handlePlayTrack}
                 />

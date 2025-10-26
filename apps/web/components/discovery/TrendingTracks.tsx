@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Track } from '@/lib/types'
 import { formatTime, formatPrice } from '@/lib/utils'
 import { cn } from '@/lib/utils'
@@ -20,6 +21,7 @@ const TrendingTracks: React.FC<TrendingTracksProps> = ({
   onPlayTrack,
   className
 }) => {
+  const router = useRouter()
   const [playingTrackId, setPlayingTrackId] = useState<string | null>(null)
   const [timeRange, setTimeRange] = useState<'24h' | '7d' | '30d'>('24h')
 
@@ -30,6 +32,10 @@ const TrendingTracks: React.FC<TrendingTracksProps> = ({
       setPlayingTrackId(track.id)
       onPlayTrack(track)
     }
+  }
+
+  const handleTrackClick = (track: Track) => {
+    onTrackSelect(track)
   }
 
   const timeRangeOptions = [
@@ -103,7 +109,10 @@ const TrendingTracks: React.FC<TrendingTracksProps> = ({
             </div>
 
             {/* Track Info */}
-            <div className="flex-1 min-w-0">
+            <div 
+              className="flex-1 min-w-0 cursor-pointer"
+              onClick={() => handleTrackClick(track)}
+            >
               <h3 className="text-lg font-semibold text-gray-900 truncate">
                 {track.title}
               </h3>

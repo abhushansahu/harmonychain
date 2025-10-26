@@ -16,9 +16,17 @@ export default function DashboardPage() {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isClient, setIsClient] = useState(false)
+
+  // Set client-side flag to prevent hydration issues
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   // Fetch artist data from API
   useEffect(() => {
+    if (!isClient) return
+
     const fetchData = async () => {
       try {
         setLoading(true)
@@ -30,14 +38,73 @@ export default function DashboardPage() {
           return
         }
         
-        // Check if user is registered as artist
-        const artistResponse = await apiClient.customRequest(`/api/artists/wallet/${address}`)
-        if (artistResponse.success && artistResponse.data) {
-          setArtist(artistResponse.data as Artist)
+        // Check if user is registered as artist, if not, auto-register them
+        let artistResponse = await apiClient.customRequest<any>(`/api/artists/wallet/${address}`)
+        
+        if (!artistResponse.success || !artistResponse.data) {
+          // User is not registered as artist, auto-register them
+          console.log('User not registered as artist, auto-registering...')
+          
+          // Generate a default artist name from wallet address
+          const defaultName = `Artist ${address.slice(0, 6)}...${address.slice(-4)}`
+          const defaultDescription = `Artist profile for ${address}`
+          
+          const registerResponse = await apiClient.registerArtist({
+            name: defaultName,
+            description: defaultDescription,
+            avatar: ''
+          }, address)
+          
+          if (registerResponse.success && registerResponse.data) {
+            // Convert API response to our Artist type
+            const artistData: Artist = {
+              id: registerResponse.data.id,
+              name: registerResponse.data.name,
+              description: registerResponse.data.description,
+              avatar: registerResponse.data.avatar,
+              walletAddress: registerResponse.data.walletAddress,
+              totalTracks: registerResponse.data.totalTracks || 0,
+              totalEarnings: registerResponse.data.totalEarnings || 0,
+              isVerified: registerResponse.data.isVerified || false,
+              createdAt: registerResponse.data.createdAt
+            }
+            setArtist(artistData)
+            console.log('Artist auto-registered successfully')
+          } else {
+            // If auto-registration fails, try to get the artist data again
+            artistResponse = await apiClient.customRequest<any>(`/api/artists/wallet/${address}`)
+            if (artistResponse.success && artistResponse.data) {
+              const artistData: Artist = {
+                id: artistResponse.data.id,
+                name: artistResponse.data.name,
+                description: artistResponse.data.description,
+                avatar: artistResponse.data.avatar,
+                walletAddress: artistResponse.data.walletAddress,
+                totalTracks: artistResponse.data.totalTracks || 0,
+                totalEarnings: artistResponse.data.totalEarnings || 0,
+                isVerified: artistResponse.data.isVerified || false,
+                createdAt: artistResponse.data.createdAt
+              }
+              setArtist(artistData)
+            } else {
+              setError('Failed to register as artist. Please try again.')
+              setLoading(false)
+              return
+            }
+          }
         } else {
-          setError('You are not registered as an artist. Please register first.')
-          setLoading(false)
-          return
+          const artistData: Artist = {
+            id: artistResponse.data.id,
+            name: artistResponse.data.name,
+            description: artistResponse.data.description,
+            avatar: artistResponse.data.avatar,
+            walletAddress: artistResponse.data.walletAddress,
+            totalTracks: artistResponse.data.totalTracks || 0,
+            totalEarnings: artistResponse.data.totalEarnings || 0,
+            isVerified: artistResponse.data.isVerified || false,
+            createdAt: artistResponse.data.createdAt
+          }
+          setArtist(artistData)
         }
         
         // Fetch artist's tracks
@@ -79,7 +146,7 @@ export default function DashboardPage() {
     } else {
       setLoading(false)
     }
-  }, [isConnected, address, tracks.length])
+  }, [isClient, isConnected, address, tracks.length])
 
   // Mock data - fallback for development
   const mockArtist: Artist = {
@@ -154,6 +221,24 @@ export default function DashboardPage() {
       { month: 'May 2024', plays: 2300, earnings: 287.50 },
       { month: 'Jun 2024', plays: 2800, earnings: 350.00 }
     ]
+  }
+
+  // Show loading state during hydration
+  if (!isClient) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+        <Navigation />
+        <div className="pt-20 pb-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+              <p className="text-gray-300 mt-4">Loading...</p>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    )
   }
 
   return (

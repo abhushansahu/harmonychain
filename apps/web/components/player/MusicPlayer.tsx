@@ -8,7 +8,6 @@ import ProgressBar from './ProgressBar'
 import VolumeControl from './VolumeControl'
 import QueueManager from './QueueManager'
 import { cn } from '@/lib/utils'
-import { getIPFSUrl } from '@/lib/utils'
 
 interface MusicPlayerProps {
   track?: Track

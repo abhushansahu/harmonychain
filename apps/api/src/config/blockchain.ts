@@ -44,10 +44,10 @@ export { provider, wallet }
  * Contract addresses with network-specific defaults
  */
 export const CONTRACT_ADDRESSES = {
-  musicRegistry: process.env.MUSIC_REGISTRY_ADDRESS || '0x5FC8d32690cc91D4c39d9d3abcBD16989F875707',
-  nftMarketplace: process.env.NFT_MARKETPLACE_ADDRESS || '0x0165878A594ca255338adfa4d48449f69242Eb8F',
-  royaltyDistributor: process.env.ROYALTY_DISTRIBUTOR_ADDRESS || '0xa513E6E4b8f2a923D98304ec87F64353C4D5C853',
-  governanceDAO: process.env.GOVERNANCE_DAO_ADDRESS || '0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6'
+  musicRegistry: process.env.MUSIC_REGISTRY_ADDRESS || '0xB7f8BC63BbcaD18155201308C8f3540b07f84F5e',
+  nftMarketplace: process.env.NFT_MARKETPLACE_ADDRESS || '0xA51c1fc2f0D1a1b8494Ed1FE312d7C3a78Ed91C0',
+  royaltyDistributor: process.env.ROYALTY_DISTRIBUTOR_ADDRESS || '0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82',
+  governanceDAO: process.env.GOVERNANCE_DAO_ADDRESS || '0x9A676e781A523b5d0C0e43731313A708CB607508'
 }
 
 /**
@@ -68,17 +68,25 @@ const validateContractAddresses = () => {
 
 // Contract ABIs (simplified for now)
 export const MUSIC_REGISTRY_ABI = [
+  "function registerArtist(string memory _name, string memory _description, string memory _avatar) external",
   "function registerTrack(string memory _title, uint256 _duration, string memory _genre, string memory _coverArt, string memory _audioFile, string memory _ipfsHash, uint256 _price) external",
   "function getTrack(uint256 _trackId) external view returns (tuple(uint256 id, string title, string artist, uint256 artistId, uint256 duration, string genre, string coverArt, string audioFile, string ipfsHash, uint256 price, bool isStreamable, uint256 playCount, address owner, uint256 createdAt))",
+  "function getArtist(uint256 _artistId) external view returns (tuple(uint256 id, string name, string description, string avatar, address walletAddress, uint256 totalTracks, uint256 totalEarnings, bool isVerified, uint256 createdAt))",
   "function getTotalTracks() external view returns (uint256)",
+  "function getTotalArtists() external view returns (uint256)",
   "function playTrack(uint256 _trackId) external",
-  "event TrackRegistered(uint256 indexed trackId, string title, string artist, address indexed owner, string ipfsHash)"
+  "function artistByAddress(address _address) external view returns (uint256)",
+  "function getArtistTracks(address _artistAddress) external view returns (uint256[])",
+  "event TrackRegistered(uint256 indexed trackId, string title, string artist, address indexed owner, string ipfsHash)",
+  "event ArtistRegistered(uint256 indexed artistId, string name, address indexed walletAddress)"
 ]
 
 export const NFT_MARKETPLACE_ABI = [
   "function mintNFT(address _to, string memory _tokenURI, uint256 _trackId, uint256 _price) external payable returns (uint256)",
   "function purchaseNFT(uint256 _tokenId) external payable",
   "function getNFT(uint256 _tokenId) external view returns (tuple(uint256 tokenId, address creator, address owner, uint256 price, bool isListed, uint256 trackId, uint256 createdAt))",
+  "function getTotalNFTs() external view returns (uint256)",
+  "function getOwnerNFTs(address _owner) external view returns (uint256[])",
   "event NFTMinted(uint256 indexed tokenId, address indexed creator, uint256 indexed trackId, string tokenURI)"
 ]
 
@@ -227,8 +235,8 @@ const testContractConnections = async () => {
   try {
     if (CONTRACT_ADDRESSES.nftMarketplace) {
       const nftMarketplace = getNFTMarketplaceContract()
-      // Test with a non-existent token ID
-      await (nftMarketplace as any).getNFT(999999)
+      // Test contract connection by calling a view function that doesn't require parameters
+      await (nftMarketplace as any).getTotalNFTs()
       console.log('✅ NFT Marketplace contract connected')
     }
   } catch (error) {

@@ -28,12 +28,12 @@ export interface Track {
 export interface Artist {
   id: string
   name: string
-  walletAddress: string
-  bio: string
+  description: string
   avatar: string
-  verified: boolean
-  followers: number
-  tracks: number
+  walletAddress: string
+  totalTracks: number
+  totalEarnings: number
+  isVerified: boolean
   createdAt: string
 }
 
@@ -130,6 +130,16 @@ export class ApiClient {
 
   async getArtist(id: string): Promise<ApiResponse<Artist>> {
     return this.request<Artist>(`/api/artists/${id}`)
+  }
+
+  async registerArtist(artistData: { name: string; description: string; avatar?: string }, walletAddress: string): Promise<ApiResponse<Artist>> {
+    return this.request<Artist>('/api/artists', {
+      method: 'POST',
+      headers: {
+        'X-Wallet-Address': walletAddress
+      },
+      body: JSON.stringify(artistData),
+    })
   }
 
   // NFT endpoints

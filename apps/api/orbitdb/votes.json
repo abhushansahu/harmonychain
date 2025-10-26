@@ -1,1 +1,18 @@
-[]
+[
+  {
+    "id": "39a26a2d-119c-4033-b1fa-2cd43ee16aaf",
+    "proposalId": "975c781c-e8cc-478a-865d-0f9b57948f42",
+    "voter": "0x12ae40ef384c1c43edafa9c2fa2921f94fbf5f50",
+    "vote": "for",
+    "weight": 100,
+    "createdAt": "2025-10-18T09:41:23.301Z"
+  },
+  {
+    "id": "5ed03253-27c4-489c-bbbc-d91ca639237d",
+    "proposalId": "c5b58747-a363-4d85-8ad5-76dcad0f59a9",
+    "voter": "0x5499a3ea4a964c7b066a639a762afb28e2f865e1",
+    "vote": "against",
+    "weight": 50,
+    "createdAt": "2025-10-19T09:41:23.301Z"
+  }
+]

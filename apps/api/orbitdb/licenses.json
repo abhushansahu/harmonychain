@@ -1,1 +1,24 @@
-[]
+[
+  {
+    "id": "3bbe88f9-b6d8-4edd-a0c8-902c6abcaa4b",
+    "trackId": "7cf93dfc-1a0f-4b97-b030-31a63e1b7a39",
+    "type": "commercial",
+    "price": 1,
+    "description": "Commercial use license",
+    "terms": "Can be used for commercial purposes",
+    "isActive": true,
+    "createdAt": "2025-10-14T09:41:23.301Z",
+    "updatedAt": "2025-10-23T09:41:23.301Z"
+  },
+  {
+    "id": "69280cf1-3593-4419-8fdc-b41c70ac407b",
+    "trackId": "00a81ccd-ad12-4ce9-b625-fffde21f1263",
+    "type": "personal",
+    "price": 0.1,
+    "description": "Personal use license",
+    "terms": "For personal use only",
+    "isActive": true,
+    "createdAt": "2025-10-16T09:41:23.301Z",
+    "updatedAt": "2025-10-23T09:41:23.301Z"
+  }
+]

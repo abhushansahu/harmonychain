@@ -1,1 +1,82 @@
-[]
+[
+  {
+    "id": "3b8b29b5-d470-4203-b52f-9701219a4be2",
+    "name": "Web3 Vibes",
+    "description": "Curated collection of web3 vibes",
+    "owner": "0x88c10689a8f2567e173923150c974155db3779a0",
+    "tracks": [],
+    "isPublic": true,
+    "createdAt": "2025-10-09T09:41:23.300Z",
+    "updatedAt": "2025-10-23T09:41:23.301Z"
+  },
+  {
+    "id": "e5745f8a-fe79-4ced-8df7-05940f13ecc9",
+    "name": "Crypto Classics",
+    "description": "Curated collection of crypto classics",
+    "owner": "0xe7edb4f511bda6c72d857c3a3c5196f218144934",
+    "tracks": [],
+    "isPublic": false,
+    "createdAt": "2025-10-10T09:41:23.301Z",
+    "updatedAt": "2025-10-23T09:41:23.301Z"
+  },
+  {
+    "id": "35c8c873-2bf6-4ab6-bb7b-f75aed5ee751",
+    "name": "Blockchain Beats",
+    "description": "Curated collection of blockchain beats",
+    "owner": "0xecd457d1bf2ea2547d45d014e4888993ef1aa8c6",
+    "tracks": [],
+    "isPublic": true,
+    "createdAt": "2025-10-11T09:41:23.301Z",
+    "updatedAt": "2025-10-23T09:41:23.301Z"
+  },
+  {
+    "id": "1f98f17b-f186-42ba-bc6a-f9ba6cf89204",
+    "name": "DeFi Dance Party",
+    "description": "Curated collection of defi dance party",
+    "owner": "0x5a8f81b0a2ed0718ae868891126acd379108ff14",
+    "tracks": [],
+    "isPublic": true,
+    "createdAt": "2025-10-12T09:41:23.301Z",
+    "updatedAt": "2025-10-23T09:41:23.301Z"
+  },
+  {
+    "id": "a83d1adf-34b4-48fe-b1c2-3ef706f73026",
+    "name": "NFT Collection",
+    "description": "Curated collection of nft collection",
+    "owner": "0xf5038fb5630a207cf69c57d832aab3b6a5182840",
+    "tracks": [],
+    "isPublic": true,
+    "createdAt": "2025-10-13T09:41:23.301Z",
+    "updatedAt": "2025-10-23T09:41:23.301Z"
+  },
+  {
+    "id": "033fd6bd-595b-4501-8239-6337f4523e4e",
+    "name": "Harmony Hits",
+    "description": "Curated collection of harmony hits",
+    "owner": "0xfc9a79ab7edf246d08329604ca0c5bd02dce5221",
+    "tracks": [],
+    "isPublic": false,
+    "createdAt": "2025-10-14T09:41:23.301Z",
+    "updatedAt": "2025-10-23T09:41:23.301Z"
+  },
+  {
+    "id": "5f23d554-ba2f-41a8-b65f-915dbedede50",
+    "name": "Smart Contract Sounds",
+    "description": "Curated collection of smart contract sounds",
+    "owner": "0xf26659bd509a5fe1038581914e3a61286eae685c",
+    "tracks": [],
+    "isPublic": true,
+    "createdAt": "2025-10-15T09:41:23.301Z",
+    "updatedAt": "2025-10-23T09:41:23.301Z"
+  },
+  {
+    "id": "5e7e45f5-be18-46ef-8105-192969e8d628",
+    "name": "Decentralized Dreams",
+    "description": "Curated collection of decentralized dreams",
+    "owner": "0x8d25c8a99a38ea7de81c9c8bcc36b4ca85bf9ffe",
+    "tracks": [],
+    "isPublic": true,
+    "createdAt": "2025-10-16T09:41:23.301Z",
+    "updatedAt": "2025-10-23T09:41:23.301Z"
+  }
+]

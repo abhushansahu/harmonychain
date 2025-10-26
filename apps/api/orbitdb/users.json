@@ -1,1 +1,29 @@
-[]
+[
+  {
+    "id": "8502269e-c8f5-4c1e-81b0-d4ed020a46c9",
+    "walletAddress": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "username": "admin",
+    "email": "admin@harmonychain.com",
+    "role": "admin",
+    "createdAt": "2025-09-24T09:41:23.299Z",
+    "updatedAt": "2025-10-23T09:41:23.300Z"
+  },
+  {
+    "id": "0486d441-4733-4157-9bf4-89e41760319c",
+    "walletAddress": "0xa6422c6020b562eed30d052ff4fcb9929b093b6a",
+    "username": "musiclover",
+    "email": "music@example.com",
+    "role": "user",
+    "createdAt": "2025-10-04T09:41:23.300Z",
+    "updatedAt": "2025-10-22T09:41:23.300Z"
+  },
+  {
+    "id": "1572d40c-912e-4235-adb5-92cbddf0226b",
+    "walletAddress": "0xadc30c0297d619c51960ba83adef9e4d623809ab",
+    "username": "artist1",
+    "email": "artist1@example.com",
+    "role": "artist",
+    "createdAt": "2025-09-29T09:41:23.300Z",
+    "updatedAt": "2025-10-23T09:41:23.300Z"
+  }
+]

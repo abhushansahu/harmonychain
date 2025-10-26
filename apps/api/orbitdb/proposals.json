@@ -1,1 +1,30 @@
-[]
+[
+  {
+    "id": "61f951ed-31a7-4a7b-87b9-ed351a9c051f",
+    "title": "Increase platform fees to 5%",
+    "description": "Proposal to increase platform fees from 3% to 5% to fund development",
+    "proposer": "0x795ed7303963b448d417bac40c797dc2e8f22215",
+    "votesFor": 150,
+    "votesAgainst": 45,
+    "totalVotes": 195,
+    "status": "active",
+    "startTime": "2025-10-19T09:41:23.301Z",
+    "endTime": "2025-10-26T09:41:23.301Z",
+    "createdAt": "2025-10-17T09:41:23.301Z",
+    "updatedAt": "2025-10-23T09:41:23.301Z"
+  },
+  {
+    "id": "144c7cc5-2b67-4e51-8e9a-9a66e948a357",
+    "title": "Add new music genre categories",
+    "description": "Proposal to add experimental and ambient music categories",
+    "proposer": "0xe77b81f15443772406ad19cad41d829d168a7f31",
+    "votesFor": 89,
+    "votesAgainst": 12,
+    "totalVotes": 101,
+    "status": "passed",
+    "startTime": "2025-10-14T09:41:23.301Z",
+    "endTime": "2025-10-21T09:41:23.301Z",
+    "createdAt": "2025-10-12T09:41:23.301Z",
+    "updatedAt": "2025-10-23T09:41:23.301Z"
+  }
+]

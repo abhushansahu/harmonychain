@@ -1,1 +1,106 @@
-[]
+[
+  {
+    "id": "a222eae9-a607-40b1-b7c1-69e4c9b5d07b",
+    "name": "CryptoBeats",
+    "walletAddress": "0x0a85867f8c342085f171eeefe828a468faef34f3",
+    "bio": "Electronic music producer and blockchain enthusiast",
+    "avatar": "/api/placeholder/200/200?artist=0",
+    "verified": true,
+    "followers": 7661,
+    "tracks": 16,
+    "totalEarnings": 1287,
+    "createdAt": "2025-09-24T09:41:23.300Z",
+    "updatedAt": "2025-10-23T09:41:23.300Z"
+  },
+  {
+    "id": "1514c900-f289-4062-a6fd-6c04df3d316d",
+    "name": "DeFi Diva",
+    "walletAddress": "0xf3b076f57e74a7ece6bae5330a4974390a8cb933",
+    "bio": "Hip-hop artist exploring Web3 culture",
+    "avatar": "/api/placeholder/200/200?artist=1",
+    "verified": true,
+    "followers": 4293,
+    "tracks": 17,
+    "totalEarnings": 3089,
+    "createdAt": "2025-09-27T09:41:23.300Z",
+    "updatedAt": "2025-10-23T09:41:23.300Z"
+  },
+  {
+    "id": "1cc3d7f6-4873-4012-af44-973bbddb2609",
+    "name": "Blockchain Blues",
+    "walletAddress": "0x67093e0e6d8311f652b08e0476c4f72fdbaccd19",
+    "bio": "Blues musician with a passion for decentralization",
+    "avatar": "/api/placeholder/200/200?artist=2",
+    "verified": false,
+    "followers": 3359,
+    "tracks": 19,
+    "totalEarnings": 1963,
+    "createdAt": "2025-09-30T09:41:23.300Z",
+    "updatedAt": "2025-10-23T09:41:23.300Z"
+  },
+  {
+    "id": "e3eddf06-51eb-4a00-9da2-cf4d792849a1",
+    "name": "Web3 Orchestra",
+    "walletAddress": "0x03363e57e9f450bc51ef4ae81eb17ffb61e327ea",
+    "bio": "Classical ensemble embracing digital innovation",
+    "avatar": "/api/placeholder/200/200?artist=3",
+    "verified": true,
+    "followers": 7015,
+    "tracks": 8,
+    "totalEarnings": 3719,
+    "createdAt": "2025-10-03T09:41:23.300Z",
+    "updatedAt": "2025-10-23T09:41:23.300Z"
+  },
+  {
+    "id": "fcb8c75d-424f-4169-b488-5e7cfd6bb6d6",
+    "name": "Harmony Hacker",
+    "walletAddress": "0xc4f1203e338bb72c3b37bd0e93ec8d6023c0f655",
+    "bio": "Experimental electronic artist",
+    "avatar": "/api/placeholder/200/200?artist=4",
+    "verified": false,
+    "followers": 1378,
+    "tracks": 1,
+    "totalEarnings": 5025,
+    "createdAt": "2025-10-06T09:41:23.300Z",
+    "updatedAt": "2025-10-23T09:41:23.300Z"
+  },
+  {
+    "id": "b45658c7-581a-4078-919c-8bf06395e8d5",
+    "name": "NFT Rocker",
+    "walletAddress": "0xd86ae0a6d44a36af1a3f4419c1aeff04767e1fa7",
+    "bio": "Rock musician pioneering music NFTs",
+    "avatar": "/api/placeholder/200/200?artist=5",
+    "verified": true,
+    "followers": 4912,
+    "tracks": 9,
+    "totalEarnings": 3514,
+    "createdAt": "2025-10-09T09:41:23.300Z",
+    "updatedAt": "2025-10-23T09:41:23.300Z"
+  },
+  {
+    "id": "063fc827-1019-4593-a1dc-61d4d3db0558",
+    "name": "Decentralized Diva",
+    "walletAddress": "0x43937e0f2c90826a668c782aa049d1086f3b26de",
+    "bio": "Pop artist with Web3 values",
+    "avatar": "/api/placeholder/200/200?artist=6",
+    "verified": true,
+    "followers": 7220,
+    "tracks": 20,
+    "totalEarnings": 4077,
+    "createdAt": "2025-10-12T09:41:23.300Z",
+    "updatedAt": "2025-10-23T09:41:23.300Z"
+  },
+  {
+    "id": "33d8837d-6e3e-4cd3-afee-7f7a840b5bb4",
+    "name": "Smart Contract Singer",
+    "walletAddress": "0x6c9cf469b7c5d602687e65cb9f75d7aff3658172",
+    "bio": "Folk artist exploring blockchain themes",
+    "avatar": "/api/placeholder/200/200?artist=7",
+    "verified": false,
+    "followers": 6417,
+    "tracks": 11,
+    "totalEarnings": 5023,
+    "createdAt": "2025-10-15T09:41:23.300Z",
+    "updatedAt": "2025-10-23T09:41:23.300Z"
+  }
+]

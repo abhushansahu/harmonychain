@@ -1,8 +1,8 @@
-# HarmonyChain Production Setup Guide
+# HarmonyChain Development Setup Guide
 
 ## 🎯 Overview
 
-This guide will help you set up HarmonyChain for production with real blockchain and IPFS integration. Follow these steps to get all features working with real data.
+This guide will help you set up HarmonyChain for development and testing. The platform currently uses sample data and mock services, with options to configure real blockchain and IPFS integration.
 
 ## 📋 Prerequisites
 
@@ -122,40 +122,40 @@ The startup script automatically deploys contracts to local Hardhat network:
 
 ## 🎵 Features Overview
 
-### ✅ Working Features
+### ✅ Working Features (with Sample Data)
 
 1. **Music Discovery**
-   - Browse tracks with real data
+   - Browse tracks with sample data
    - Search and filter functionality
    - Genre-based filtering
    - Play count tracking
 
 2. **NFT Marketplace**
-   - View and purchase music NFTs
-   - Mint new NFTs from tracks
-   - Ownership verification
+   - View music NFTs (sample data)
+   - NFT creation interface
+   - Ownership display
    - Price tracking
 
 3. **Artist Dashboard**
-   - Real analytics from database
+   - Analytics from sample database
    - Track performance metrics
-   - Revenue tracking
+   - Revenue tracking display
    - Earnings display
 
 4. **Upload System**
-   - File upload to IPFS
-   - Blockchain track registration
-   - Metadata storage
+   - File upload interface
+   - Metadata forms
+   - License settings
    - Success confirmation
 
 5. **Governance**
-   - Create proposals
-   - Vote on proposals
-   - Execute proposals
-   - DAO analytics
+   - Create proposals interface
+   - Vote on proposals interface
+   - Proposal execution interface
+   - DAO analytics display
 
 6. **Music Player**
-   - Audio streaming from IPFS
+   - Audio player interface
    - Queue management
    - Play count tracking
    - User listening history

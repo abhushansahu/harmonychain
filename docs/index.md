@@ -21,9 +21,9 @@ HarmonyChain is a decentralized music platform enabling free listening, fair art
 
 ### ✅ Completed
 - **Core Infrastructure**: Monorepo structure with Turborepo
-- **Smart Contracts**: MusicRegistry, NFTMarketplace, RoyaltyDistributor, GovernanceDAO
+- **Smart Contracts**: MusicRegistry, NFTMarketplace, RoyaltyDistributor, GovernanceDAO (written, not deployed)
 - **API Backend**: Express.js with track, artist, NFT, and governance endpoints
-- **Basic Frontend**: Next.js with navigation, pages, and layout components
+- **Frontend**: Next.js with navigation, pages, and layout components
 - **Web3 Integration**: Wagmi and RainbowKit configuration
 - **TypeScript**: Full type safety across all packages
 - **UI Components**: Reusable components (Button, Input, Card, Modal)
@@ -34,17 +34,19 @@ HarmonyChain is a decentralized music platform enabling free listening, fair art
 - **NFT Marketplace**: NFT creation, marketplace, and ownership display
 - **Licensing**: License management, permission matrix, and revenue splitting
 
-### 🚧 In Development
-- **IPFS Integration**: Decentralized file storage
-- **Real-time Features**: Live updates and notifications
-- **Mobile Support**: Responsive design and PWA
-- **Advanced Analytics**: Detailed performance metrics
+### 🚧 In Development / Needs Configuration
+- **IPFS Integration**: Mock mode working, real IPFS requires API keys
+- **Blockchain Integration**: Smart contracts ready but need deployment
+- **Database**: Using JSON files with sample data, needs production migration
+- **Authentication**: JWT working, SIWE frontend integration needed
+- **Real Data**: Currently uses sample data for demonstration
 
 ### 📋 Planned
 - **Cross-chain Support**: Multi-blockchain compatibility
 - **Social Features**: User profiles and social interactions
 - **AI Recommendations**: Machine learning-based suggestions
 - **Mobile App**: Native mobile applications
+- **Real-time Features**: Live updates and notifications
 
 ## Principles and Design Goals
 - Open access to music (free consumption)

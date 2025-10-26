@@ -26,6 +26,7 @@ const NFTMarketplace: React.FC<NFTMarketplaceProps> = ({
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'price_low' | 'price_high' | 'popular'>('newest')
   const [filterBy, setFilterBy] = useState<'all' | 'music' | 'art' | 'collectible'>('all')
+  const [artistFilter, setArtistFilter] = useState<string>('')
   const [searchQuery, setSearchQuery] = useState('')
   const [likedNFTs, setLikedNFTs] = useState<Set<string>>(new Set())
 
@@ -48,6 +49,9 @@ const NFTMarketplace: React.FC<NFTMarketplaceProps> = ({
         return false
       }
       if (searchQuery && !nft.metadata.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+        return false
+      }
+      if (artistFilter && nft.artistId !== artistFilter) {
         return false
       }
       return true
@@ -106,6 +110,23 @@ const NFTMarketplace: React.FC<NFTMarketplaceProps> = ({
               <option value="music">Music</option>
               <option value="art">Art</option>
               <option value="collectible">Collectible</option>
+            </select>
+
+            {/* Artist Filter */}
+            <select
+              value={artistFilter}
+              onChange={(e) => setArtistFilter(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">All Artists</option>
+              {Array.from(new Set(nfts.map(nft => nft.artistId))).map(artistId => {
+                const nft = nfts.find(n => n.artistId === artistId)
+                return (
+                  <option key={artistId} value={artistId}>
+                    {`Artist ${artistId}`}
+                  </option>
+                )
+              })}
             </select>
 
             {/* Sort */}

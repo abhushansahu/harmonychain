@@ -6,9 +6,11 @@ import Footer from '@/components/layout/Footer'
 import ArtistDashboard from '@/components/dashboard/ArtistDashboard'
 import { Artist, Track, AnalyticsData } from '@/lib/types'
 import { apiClient } from '@/lib/api/client'
+import { useAccount } from 'wagmi'
 import toast from 'react-hot-toast'
 
 export default function DashboardPage() {
+  const { address, isConnected } = useAccount()
   const [artist, setArtist] = useState<Artist | null>(null)
   const [tracks, setTracks] = useState<Track[]>([])
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
@@ -22,46 +24,45 @@ export default function DashboardPage() {
         setLoading(true)
         setError(null)
         
-        // For now, we'll use mock data since we need the artist's wallet address
-        // In a real app, this would come from authentication context
-        const artistId = '1' // This would be from auth context
-        
-        const [artistResponse, tracksResponse] = await Promise.all([
-          apiClient.getArtist(artistId),
-          apiClient.getTracks()
-        ])
-        
-        if (artistResponse.success && artistResponse.data) {
-          // Map API response to expected Artist type
-          const artistData = {
-            ...artistResponse.data,
-            description: artistResponse.data.bio || '',
-            totalTracks: artistResponse.data.tracks || 0,
-            totalEarnings: 0, // Will be calculated from blockchain
-            isVerified: artistResponse.data.verified || false
-          }
-          setArtist(artistData)
+        if (!isConnected || !address) {
+          setError('Please connect your wallet to access the dashboard')
+          setLoading(false)
+          return
         }
         
+        // Check if user is registered as artist
+        const artistResponse = await apiClient.customRequest(`/api/artists/wallet/${address}`)
+        if (artistResponse.success && artistResponse.data) {
+          setArtist(artistResponse.data as Artist)
+        } else {
+          setError('You are not registered as an artist. Please register first.')
+          setLoading(false)
+          return
+        }
+        
+        // Fetch artist's tracks
+        const tracksResponse = await apiClient.getTracks()
         if (tracksResponse.success && tracksResponse.data) {
-          // Filter tracks for this artist and map to expected format
-          const artistTracks = tracksResponse.data
-            .filter(track => track.artistId === artistId)
-            .map(track => ({
-              ...track,
-              isStreamable: true,
-              playCount: 0,
-              owner: track.artistId
-            }))
+          // Filter tracks by artist wallet address
+          const artistTracks = tracksResponse.data.filter(track => 
+            track.owner === address || track.artistId === (artistResponse.data as Artist).id
+          )
           setTracks(artistTracks)
         }
         
-        // Mock analytics for now
+        // Calculate real analytics from track data
+        const totalPlays = tracks.reduce((sum, track) => sum + (track.playCount || 0), 0)
+        const totalEarnings = 0 // Earnings would come from blockchain transactions
+        
         setAnalytics({
-          totalPlays: 1250,
-          totalEarnings: 1250.75,
-          topTracks: [],
-          monthlyStats: []
+          totalPlays,
+          totalEarnings,
+          topTracks: tracks.slice(0, 3).map(track => ({
+            track,
+            plays: track.playCount || 0,
+            earnings: 0 // Earnings would come from blockchain transactions
+          })),
+          monthlyStats: [] // Could be calculated from historical data
         })
         
       } catch (err) {
@@ -73,8 +74,12 @@ export default function DashboardPage() {
       }
     }
 
-    fetchData()
-  }, [])
+    if (isConnected && address) {
+      fetchData()
+    } else {
+      setLoading(false)
+    }
+  }, [isConnected, address, tracks.length])
 
   // Mock data - fallback for development
   const mockArtist: Artist = {
@@ -157,7 +162,18 @@ export default function DashboardPage() {
       
       <div className="pt-20 pb-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {loading ? (
+          {!isConnected ? (
+            <div className="text-center py-8">
+              <h2 className="text-2xl font-bold text-white mb-4">Connect Your Wallet</h2>
+              <p className="text-gray-300 mb-8">Please connect your wallet to access the artist dashboard.</p>
+              <button 
+                onClick={() => window.location.href = '/upload'}
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Connect Wallet
+              </button>
+            </div>
+          ) : loading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
               <p className="text-gray-300 mt-4">Loading dashboard...</p>

@@ -73,9 +73,9 @@ const TrackUpload: React.FC<TrackUploadProps> = ({ onUpload, className }) => {
           setIsUploading(false)
           return 100
         }
-        return prev + 10
+        return prev + Math.random() * 15 + 5 // More realistic progress
       })
-    }, 200)
+    }, 300)
   }
 
   const removeFile = () => {

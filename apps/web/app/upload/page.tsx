@@ -47,12 +47,20 @@ export default function UploadPage() {
       return
     }
 
+    if (!form.audioFile) {
+      toast.error('Please select an audio file to upload')
+      return
+    }
+
     try {
       setUploading(true)
+      toast.loading('Preparing upload...', { id: 'upload' })
       
       // Step 1: Get authentication token
       const message = `Sign this message to authenticate with HarmonyChain: ${Date.now()}`
       const signature = await signMessageAsync({ message })
+      
+      toast.loading('Uploading to IPFS...', { id: 'upload' })
       
       // Step 2: Create FormData for file upload
       const formData = new FormData()
@@ -73,7 +81,7 @@ export default function UploadPage() {
       const result = await apiClient.uploadTrack(formData, signature, address)
       
       if (result.success) {
-        toast.success('Track uploaded successfully to IPFS and registered on blockchain!')
+        toast.success('Track uploaded successfully to IPFS and registered on blockchain!', { id: 'upload' })
         console.log('Upload result:', result.data)
         
         // Reset form and go back to step 1
@@ -93,7 +101,7 @@ export default function UploadPage() {
       }
     } catch (error) {
       console.error('Upload error:', error)
-      toast.error('Upload failed. Please try again.')
+      toast.error(`Upload failed: ${error instanceof Error ? error.message : 'Unknown error'}`, { id: 'upload' })
     } finally {
       setUploading(false)
     }

@@ -121,7 +121,7 @@ export class SimpleDB {
     const existingRecord = records.find((record: any) => record.id === id)
     if (existingRecord) {
       console.warn(`Duplicate ID detected for ${store}: ${id}`)
-      return existingRecord
+      return existingRecord as T & { id: string; createdAt: string; updatedAt: string; }
     }
     
     records.push(newRecord)

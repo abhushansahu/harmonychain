@@ -18,6 +18,9 @@ export interface Track {
   coverArt: string
   audioFile: string
   ipfsHash: string
+  isStreamable: boolean
+  playCount: number
+  owner: string
   createdAt: string
   updatedAt: string
 }

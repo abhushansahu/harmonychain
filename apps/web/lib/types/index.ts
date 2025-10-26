@@ -242,6 +242,9 @@ export interface InputProps extends BaseComponentProps {
   onFocus?: () => void
   error?: string
   disabled?: boolean
+  step?: string
+  min?: string
+  max?: string
 }
 
 export interface CardProps extends BaseComponentProps {

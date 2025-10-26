@@ -106,4 +106,16 @@ export class AuthService {
     }
     return authHeader.substring(7)
   }
+
+  static generateToken(user: any): string {
+    return jwt.sign(
+      {
+        address: user.address,
+        chainId: user.chainId,
+        nonce: user.nonce
+      },
+      this.JWT_SECRET,
+      { expiresIn: this.JWT_EXPIRES_IN }
+    )
+  }
 }

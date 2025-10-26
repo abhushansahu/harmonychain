@@ -14,6 +14,7 @@ export default function Navigation() {
     { name: 'Artists', href: '/artists' },
     { name: 'Marketplace', href: '/marketplace' },
     { name: 'Governance', href: '/governance' },
+    { name: 'Docs', href: '/docs' },
   ]
 
   return (

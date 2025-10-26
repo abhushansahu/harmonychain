@@ -6,10 +6,14 @@ const router = Router()
 // Get all proposals - Web3 only
 router.get('/proposals', async (req, res) => {
   try {
-    // In a real implementation, this would fetch proposals from blockchain
+    const { BlockchainService } = await import('../services/blockchainService')
+    
+    // Fetch proposals from blockchain
+    const proposals = await BlockchainService.getProposals()
+    
     const response: ApiResponse = {
       success: true,
-      data: [],
+      data: proposals,
       message: 'Proposals retrieved from blockchain'
     }
     
@@ -27,12 +31,25 @@ router.get('/proposals', async (req, res) => {
 // Create proposal - Web3 only
 router.post('/proposals', async (req, res) => {
   try {
-    const proposalData = req.body
+    const { title, description, proposer } = req.body
     
-    // In a real implementation, this would create a proposal on blockchain
+    if (!title || !description || !proposer) {
+      const response: ApiResponse = {
+        success: false,
+        error: 'Missing required fields',
+        message: 'Title, description, and proposer are required'
+      }
+      return res.status(400).json(response)
+    }
+    
+    const { BlockchainService } = await import('../services/blockchainService')
+    
+    // Create proposal on blockchain
+    const proposalId = await BlockchainService.createProposal(title, description, proposer)
+    
     const response: ApiResponse = {
       success: true,
-      data: { id: 'proposal_' + Date.now() },
+      data: { id: proposalId },
       message: 'Proposal created successfully on blockchain'
     }
     
@@ -51,12 +68,25 @@ router.post('/proposals', async (req, res) => {
 router.post('/proposals/:id/vote', async (req, res) => {
   try {
     const { id } = req.params
-    const { vote, walletAddress } = req.body
+    const { support, voter } = req.body
     
-    // In a real implementation, this would cast a vote on blockchain
+    if (typeof support !== 'boolean' || !voter) {
+      const response: ApiResponse = {
+        success: false,
+        error: 'Missing required fields',
+        message: 'Support (boolean) and voter address are required'
+      }
+      return res.status(400).json(response)
+    }
+    
+    const { BlockchainService } = await import('../services/blockchainService')
+    
+    // Cast vote on blockchain
+    await BlockchainService.castVote(id, support, voter)
+    
     const response: ApiResponse = {
       success: true,
-      data: { proposalId: id, vote, walletAddress },
+      data: { proposalId: id, support, voter },
       message: 'Vote recorded successfully on blockchain'
     }
     
@@ -76,10 +106,14 @@ router.get('/voting-power/:walletAddress', async (req, res) => {
   try {
     const { walletAddress } = req.params
     
-    // In a real implementation, this would calculate voting power from token holdings
+    const { BlockchainService } = await import('../services/blockchainService')
+    
+    // Get voting power from blockchain
+    const votingPower = await BlockchainService.getVotingPower(walletAddress)
+    
     const response: ApiResponse = {
       success: true,
-      data: { votingPower: 1000 },
+      data: { votingPower },
       message: 'Voting power retrieved from blockchain'
     }
     

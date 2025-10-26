@@ -76,12 +76,23 @@ router.post('/verify', async (req, res) => {
 // Get user profile
 router.get('/profile', authenticateToken, async (req, res) => {
   try {
+    const { BlockchainService } = await import('../services/blockchainService')
+    
+    // Check if user is registered as artist
+    const isArtist = await BlockchainService.isArtistRegistered(req.user?.address || '')
+    let artistData = null
+    
+    if (isArtist) {
+      artistData = await BlockchainService.getArtistByAddress(req.user?.address || '')
+    }
+    
     const response: ApiResponse = {
       success: true,
       data: {
         address: req.user?.address,
         chainId: req.user?.chainId,
-        isArtist: false, // This would be checked against blockchain
+        isArtist,
+        artistData,
         createdAt: new Date().toISOString()
       },
       message: 'Profile retrieved successfully'
@@ -89,6 +100,7 @@ router.get('/profile', authenticateToken, async (req, res) => {
     
     res.json(response)
   } catch (error) {
+    console.error('Error fetching profile:', error)
     const response: ApiResponse = {
       success: false,
       error: 'Failed to fetch profile',

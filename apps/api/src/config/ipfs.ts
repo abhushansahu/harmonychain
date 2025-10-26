@@ -83,7 +83,7 @@ const initIPFS = async () => {
     console.log('✅ Local IPFS client initialized:', response.data)
     return ipfsClient
   } catch (error) {
-    console.warn('⚠️ Failed to connect to local IPFS:', error.message)
+    console.warn('⚠️ Failed to connect to local IPFS:', (error as Error).message)
     return null
   }
 }
@@ -391,7 +391,7 @@ export const checkIPFSHealth = async () => {
     await axios.get(`${IPFS_API_URL}/api/v0/version`, { timeout: 5000 })
     health.local = true
   } catch (error) {
-    console.warn('Local IPFS not available:', error.message)
+    console.warn('Local IPFS not available:', (error as Error).message)
   }
 
   if (PINATA_API_KEY && PINATA_SECRET_KEY) {
@@ -405,7 +405,7 @@ export const checkIPFSHealth = async () => {
       })
       health.pinata = true
     } catch (error) {
-      console.warn('Pinata not available:', error.message)
+      console.warn('Pinata not available:', (error as Error).message)
     }
   }
 

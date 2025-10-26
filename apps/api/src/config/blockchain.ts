@@ -44,10 +44,10 @@ export { provider, wallet }
  * Contract addresses with network-specific defaults
  */
 export const CONTRACT_ADDRESSES = {
-  musicRegistry: process.env.MUSIC_REGISTRY_ADDRESS || (NETWORK === 'localhost' ? '0x5FbDB2315678afecb367f032d93F642f64180aa3' : ''),
-  nftMarketplace: process.env.NFT_MARKETPLACE_ADDRESS || (NETWORK === 'localhost' ? '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512' : ''),
-  royaltyDistributor: process.env.ROYALTY_DISTRIBUTOR_ADDRESS || (NETWORK === 'localhost' ? '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0' : ''),
-  governanceDAO: process.env.GOVERNANCE_DAO_ADDRESS || (NETWORK === 'localhost' ? '0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9' : '')
+  musicRegistry: process.env.MUSIC_REGISTRY_ADDRESS || '0x5FC8d32690cc91D4c39d9d3abcBD16989F875707',
+  nftMarketplace: process.env.NFT_MARKETPLACE_ADDRESS || '0x0165878A594ca255338adfa4d48449f69242Eb8F',
+  royaltyDistributor: process.env.ROYALTY_DISTRIBUTOR_ADDRESS || '0xa513E6E4b8f2a923D98304ec87F64353C4D5C853',
+  governanceDAO: process.env.GOVERNANCE_DAO_ADDRESS || '0x2279B7A0a67DB372996a5FaB50D91eAA73d2eBe6'
 }
 
 /**
@@ -82,6 +82,23 @@ export const NFT_MARKETPLACE_ABI = [
   "event NFTMinted(uint256 indexed tokenId, address indexed creator, uint256 indexed trackId, string tokenURI)"
 ]
 
+export const GOVERNANCE_DAO_ABI = [
+  "function getTotalProposals() external view returns (uint256)",
+  "function getProposal(uint256 _proposalId) external view returns (tuple(uint256 id, string title, string description, address proposer, uint256 forVotes, uint256 againstVotes, uint256 startTime, uint256 endTime, bool executed, bool canceled))",
+  "function createProposal(string memory _title, string memory _description) external returns (uint256)",
+  "function castVote(uint256 _proposalId, bool _support) external",
+  "function votingPower(address _voter) external view returns (uint256)",
+  "function isMember(address _member) external view returns (bool)",
+  "function addMember(address _member, uint256 _votingPower) external",
+  "function removeMember(address _member) external",
+  "function executeProposal(uint256 _proposalId) external",
+  "function cancelProposal(uint256 _proposalId) external",
+  "event ProposalCreated(uint256 indexed proposalId, address indexed proposer, string title)",
+  "event VoteCast(uint256 indexed proposalId, address indexed voter, bool support, uint256 weight)",
+  "event ProposalExecuted(uint256 indexed proposalId)",
+  "event ProposalCanceled(uint256 indexed proposalId)"
+]
+
 /**
  * Contract instances with validation and fallback
  */
@@ -105,6 +122,17 @@ export const getNFTMarketplaceContract = () => {
     throw new Error('NFT Marketplace contract address not set. Set NFT_MARKETPLACE_ADDRESS environment variable.')
   }
   return new ethers.Contract(CONTRACT_ADDRESSES.nftMarketplace, NFT_MARKETPLACE_ABI, wallet || provider)
+}
+
+export const getGovernanceDAOContract = () => {
+  if (!CONTRACT_ADDRESSES.governanceDAO) {
+    if (MOCK_MODE) {
+      console.log('🔧 Using mock Governance DAO contract')
+      return createMockContract('GovernanceDAO')
+    }
+    throw new Error('Governance DAO contract address not set. Set GOVERNANCE_DAO_ADDRESS environment variable.')
+  }
+  return new ethers.Contract(CONTRACT_ADDRESSES.governanceDAO, GOVERNANCE_DAO_ABI, wallet || provider)
 }
 
 /**
@@ -150,7 +178,7 @@ export const initBlockchain = async () => {
         console.log(`✅ Wallet connected: ${wallet.address}`)
         console.log(`💰 Balance: ${ethers.formatEther(balance)} ${network.name === 'localhost' ? 'ETH' : 'ONE'}`)
       } catch (error) {
-        console.warn('⚠️ Wallet balance check failed:', error.message)
+        console.warn('⚠️ Wallet balance check failed:', (error as Error).message)
       }
     } else {
       console.warn('⚠️ No wallet connected (PRIVATE_KEY not set)')
@@ -193,18 +221,18 @@ const testContractConnections = async () => {
       console.log('✅ Music Registry contract connected')
     }
   } catch (error) {
-    console.warn('⚠️ Music Registry contract test failed:', error.message)
+    console.warn('⚠️ Music Registry contract test failed:', (error as Error).message)
   }
 
   try {
     if (CONTRACT_ADDRESSES.nftMarketplace) {
       const nftMarketplace = getNFTMarketplaceContract()
       // Test with a non-existent token ID
-      await nftMarketplace.getNFT(999999)
+      await (nftMarketplace as any).getNFT(999999)
       console.log('✅ NFT Marketplace contract connected')
     }
   } catch (error) {
-    console.warn('⚠️ NFT Marketplace contract test failed:', error.message)
+    console.warn('⚠️ NFT Marketplace contract test failed:', (error as Error).message)
   }
 }
 
@@ -243,22 +271,22 @@ export const getBlockchainHealth = async () => {
         await contract.getTotalTracks()
         health.contracts.musicRegistry = true
       } catch (error) {
-        console.warn('Music Registry contract not accessible:', error.message)
+        console.warn('Music Registry contract not accessible:', (error as Error).message)
       }
     }
 
     if (CONTRACT_ADDRESSES.nftMarketplace) {
       try {
         const contract = getNFTMarketplaceContract()
-        await contract.getTotalNFTs()
+        await (contract as any).getTotalNFTs()
         health.contracts.nftMarketplace = true
       } catch (error) {
-        console.warn('NFT Marketplace contract not accessible:', error.message)
+        console.warn('NFT Marketplace contract not accessible:', (error as Error).message)
       }
     }
 
   } catch (error) {
-    console.warn('Blockchain health check failed:', error.message)
+    console.warn('Blockchain health check failed:', (error as Error).message)
   }
 
   return health

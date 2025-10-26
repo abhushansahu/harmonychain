@@ -1,29 +1,115 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import Navigation from '@/components/layout/Navigation'
 import Footer from '@/components/layout/Footer'
 import MusicPlayer from '@/components/player/MusicPlayer'
 import { Track } from '@/lib/types'
+import { apiClient } from '@/lib/api/client'
+import { useSearchParams } from 'next/navigation'
 
-export default function PlayerPage() {
-  // Mock track data - in a real app, this would come from props or state
-  const mockTrack: Track = {
-    id: '1',
-    title: 'Digital Dreams',
-    artist: 'CryptoBeats',
-    artistId: '1',
-    duration: 180,
-    genre: 'Electronic',
-    price: 0.5,
-    coverArt: '/api/placeholder/300/300',
-    audioFile: '/api/placeholder/audio.mp3',
-    ipfsHash: 'QmExample1',
-    isStreamable: true,
-    playCount: 1250,
-    owner: '0x123...',
-    createdAt: '2024-01-15T10:00:00Z',
-    updatedAt: '2024-01-15T10:00:00Z'
+function PlayerContent() {
+  const [currentTrack, setCurrentTrack] = useState<Track | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const searchParams = useSearchParams()
+  const trackId = searchParams.get('trackId')
+
+  useEffect(() => {
+    const loadTrack = async () => {
+      try {
+        setIsLoading(true)
+        setError(null)
+
+        if (trackId) {
+          // Load specific track by ID
+          const response = await apiClient.getTrack(trackId)
+          if (response.success && response.data) {
+            setCurrentTrack(response.data)
+          } else {
+            setError('Track not found')
+          }
+        } else {
+          // Load tracks and use the first one as demo
+          const response = await apiClient.getTracks()
+          if (response.success && response.data && response.data.length > 0) {
+            setCurrentTrack(response.data[0])
+          } else {
+            // Fallback to mock data if no tracks available
+            const mockTrack: Track = {
+              id: '1',
+              title: 'Digital Dreams',
+              artist: 'CryptoBeats',
+              artistId: '1',
+              duration: 180,
+              genre: 'Electronic',
+              price: 0.5,
+              coverArt: '/api/placeholder/300/300',
+              audioFile: '/api/placeholder/audio.mp3',
+              ipfsHash: 'QmExample1',
+              isStreamable: true,
+              playCount: 1250,
+              owner: '0x123...',
+              createdAt: '2024-01-15T10:00:00Z',
+              updatedAt: '2024-01-15T10:00:00Z'
+            }
+            setCurrentTrack(mockTrack)
+          }
+        }
+      } catch (err) {
+        console.error('Error loading track:', err)
+        setError('Failed to load track')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadTrack()
+  }, [trackId])
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-white text-xl">Loading player...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-white mb-4">Error Loading Track</h2>
+          <p className="text-gray-300 mb-8">{error}</p>
+          <button 
+            onClick={() => window.location.href = '/discover'}
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Browse Music
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!currentTrack) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-white mb-4">No Track Selected</h2>
+          <p className="text-gray-300 mb-8">Please select a track to play from the discover page or your library.</p>
+          <button 
+            onClick={() => window.location.href = '/discover'}
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Browse Music
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -42,7 +128,7 @@ export default function PlayerPage() {
 
           {/* Music Player */}
           <MusicPlayer
-            track={mockTrack}
+            track={currentTrack}
             className="mb-8"
           />
 
@@ -74,5 +160,13 @@ export default function PlayerPage() {
 
       <Footer />
     </div>
+  )
+}
+
+export default function PlayerPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PlayerContent />
+    </Suspense>
   )
 }

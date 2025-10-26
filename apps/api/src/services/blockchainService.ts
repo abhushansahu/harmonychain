@@ -1,4 +1,4 @@
-import { getMusicRegistryContract, getNFTMarketplaceContract } from '../config/blockchain'
+import { getMusicRegistryContract, getNFTMarketplaceContract, getGovernanceDAOContract } from '../config/blockchain'
 import { ethers } from 'ethers'
 
 // Define interfaces locally since shared package has issues
@@ -252,6 +252,33 @@ export class BlockchainService {
     }
   }
 
+  static async isArtistRegistered(walletAddress: string): Promise<boolean> {
+    try {
+      const contract = getMusicRegistryContract()
+      const artistId = await (contract as any).artistByAddress(walletAddress)
+      return artistId > 0
+    } catch (error) {
+      console.error('Error checking artist registration:', error)
+      return false
+    }
+  }
+
+  static async getArtistByAddress(walletAddress: string): Promise<any> {
+    try {
+      const contract = getMusicRegistryContract()
+      const artistId = await (contract as any).artistByAddress(walletAddress)
+      
+      if (artistId === 0) {
+        return null
+      }
+      
+      return await this.getArtist(artistId.toString())
+    } catch (error) {
+      console.error('Error fetching artist by address:', error)
+      return null
+    }
+  }
+
   static async getArtistTracks(artistAddress: string): Promise<string[]> {
     try {
       const contract = getMusicRegistryContract()
@@ -292,6 +319,96 @@ export class BlockchainService {
     } catch (error) {
       console.error('Error deleting track from blockchain:', error)
       return false
+    }
+  }
+
+  // Governance methods
+  static async createProposal(
+    title: string,
+    description: string,
+    proposer: string
+  ): Promise<string> {
+    try {
+      const contract = getGovernanceDAOContract()
+      const tx = await (contract as any).createProposal(title, description)
+      await tx.wait()
+      
+      // Get the proposal ID from the event
+      const receipt = await tx.wait()
+      const event = receipt.logs.find((log: any) => {
+        try {
+          const parsed = contract.interface.parseLog(log)
+          return parsed?.name === 'ProposalCreated'
+        } catch {
+          return false
+        }
+      })
+      
+      if (event) {
+        const parsed = contract.interface.parseLog(event)
+        return parsed?.args.proposalId.toString()
+      }
+      
+      throw new Error('Proposal created but ID not found')
+    } catch (error) {
+      console.error('Error creating proposal on blockchain:', error)
+      throw error
+    }
+  }
+
+  static async getProposals(): Promise<any[]> {
+    try {
+      const contract = getGovernanceDAOContract()
+      const totalProposals = await (contract as any).getTotalProposals()
+      const proposals = []
+      
+      for (let i = 1; i <= totalProposals; i++) {
+        try {
+          const proposal = await (contract as any).getProposal(i)
+          proposals.push({
+            id: i.toString(),
+            title: proposal.title,
+            description: proposal.description,
+            proposer: proposal.proposer,
+            forVotes: Number(proposal.forVotes),
+            againstVotes: Number(proposal.againstVotes),
+            startTime: new Date(Number(proposal.startTime) * 1000).toISOString(),
+            endTime: new Date(Number(proposal.endTime) * 1000).toISOString(),
+            executed: proposal.executed,
+            canceled: proposal.canceled
+          })
+        } catch (error) {
+          console.warn(`Failed to fetch proposal ${i}:`, error)
+        }
+      }
+      
+      return proposals
+    } catch (error) {
+      console.error('Error fetching proposals from blockchain:', error)
+      return []
+    }
+  }
+
+  static async castVote(proposalId: string, support: boolean, voter: string): Promise<boolean> {
+    try {
+      const contract = getGovernanceDAOContract()
+      const tx = await (contract as any).castVote(proposalId, support)
+      await tx.wait()
+      return true
+    } catch (error) {
+      console.error('Error casting vote on blockchain:', error)
+      throw error
+    }
+  }
+
+  static async getVotingPower(address: string): Promise<number> {
+    try {
+      const contract = getGovernanceDAOContract()
+      const power = await (contract as any).votingPower(address)
+      return Number(power)
+    } catch (error) {
+      console.error('Error fetching voting power from blockchain:', error)
+      return 0
     }
   }
 }

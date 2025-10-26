@@ -41,6 +41,53 @@ router.get('/', async (req, res) => {
   }
 })
 
+// Get artist by wallet address
+router.get('/wallet/:address', async (req, res) => {
+  try {
+    const { address } = req.params
+    
+    // Check if artist is registered on blockchain
+    const isRegistered = await BlockchainService.isArtistRegistered(address)
+    
+    if (!isRegistered) {
+      const response: ApiResponse = {
+        success: false,
+        error: 'Artist not registered',
+        message: 'This wallet address is not registered as an artist'
+      }
+      return res.status(404).json(response)
+    }
+    
+    // Get artist data from blockchain
+    const artist = await BlockchainService.getArtistByAddress(address)
+    
+    if (!artist) {
+      const response: ApiResponse = {
+        success: false,
+        error: 'Artist data not found',
+        message: 'Artist is registered but data could not be retrieved'
+      }
+      return res.status(404).json(response)
+    }
+    
+    const response: ApiResponse = {
+      success: true,
+      data: artist,
+      message: 'Artist retrieved successfully from blockchain'
+    }
+    
+    res.json(response)
+  } catch (error) {
+    console.error('Error fetching artist by wallet:', error)
+    const response: ApiResponse = {
+      success: false,
+      error: 'Failed to fetch artist',
+      message: 'An error occurred while fetching the artist'
+    }
+    res.status(500).json(response)
+  }
+})
+
 // Get artist by ID
 router.get('/:id', async (req, res) => {
   try {

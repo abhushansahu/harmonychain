@@ -4,17 +4,23 @@ import React, { useState, useEffect } from 'react'
 import Navigation from '@/components/layout/Navigation'
 import Footer from '@/components/layout/Footer'
 import NFTMarketplace from '@/components/nft/NFTMarketplace'
+import NFTMintForm from '@/components/nft/NFTMintForm'
 import OwnershipDisplay from '@/components/nft/OwnershipDisplay'
 import PriceFeed from '@/components/ui/PriceFeed'
 import { NFT } from '@/lib/types'
 import { apiClient } from '@/lib/api/client'
+import { useAccount } from 'wagmi'
 import toast from 'react-hot-toast'
+import Button from '@/components/ui/Button'
+import Modal from '@/components/ui/Modal'
 
 export default function MarketplacePage() {
+  const { address, isConnected } = useAccount()
   const [activeTab, setActiveTab] = useState<'marketplace' | 'my-nfts'>('marketplace')
   const [nfts, setNfts] = useState<NFT[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showMintModal, setShowMintModal] = useState(false)
 
   // Fetch NFTs from API
   useEffect(() => {
@@ -190,6 +196,14 @@ export default function MarketplacePage() {
               >
                 My NFTs
               </button>
+              {isConnected && (
+                <button
+                  onClick={() => setShowMintModal(true)}
+                  className="px-6 py-2 rounded-md font-medium bg-green-600 text-white hover:bg-green-700 transition-colors"
+                >
+                  Mint NFT
+                </button>
+              )}
             </div>
           </div>
 
@@ -213,6 +227,22 @@ export default function MarketplacePage() {
           )}
         </div>
       </div>
+
+      {/* Mint NFT Modal */}
+      <Modal
+        isOpen={showMintModal}
+        onClose={() => setShowMintModal(false)}
+        title="Mint NFT"
+      >
+        <NFTMintForm
+          onMintSuccess={(nft) => {
+            setNfts(prev => [nft, ...prev])
+            setShowMintModal(false)
+            toast.success('NFT minted successfully!')
+          }}
+          onClose={() => setShowMintModal(false)}
+        />
+      </Modal>
 
       <Footer />
     </div>
